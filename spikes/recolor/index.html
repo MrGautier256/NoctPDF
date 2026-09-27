@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>NoctPDF recolor spike</title>
+<link rel="stylesheet" href="../node_modules/pdfjs-dist/web/pdf_viewer.css">
+<style>
+  html, body { margin: 0; height: 100%; background: var(--noct-surround, #555); }
+  .no-theme body { background: #525659; }
+  #viewerContainer { position: absolute; inset: 0; overflow: auto; }
+  /* No white flash: pages take the theme bg before the first pixel. */
+  :root:not(.no-theme) .pdfViewer .page { background-color: var(--noct-bg); border: none; box-shadow: 0 1px 4px #0008; }
+  /* Shader mode: never show a canvas before it has been recolored. */
+  .shader .pdfViewer .canvasWrapper canvas:not([data-noct]) { visibility: hidden; }
+  ::selection { background: #4c7fff66; }
+</style>
+<script>
+  if (new URLSearchParams(location.search).get("mode") !== "hook" &&
+      new URLSearchParams(location.search).get("mode") !== "none") {
+    document.documentElement.classList.add("shader");
+  }
+</script>
+</head>
+<body>
+<div id="viewerContainer"><div id="viewer" class="pdfViewer"></div></div>
+<script type="module" src="main.mjs"></script>
+</body>
+</html>

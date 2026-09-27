@@ -1,0 +1,8 @@
+node_modules/
+spikes/out/
+spikes/fixtures/*.pdf
+.output/
+.wxt/
+dist/
+*.log
+.claude/settings.local.json

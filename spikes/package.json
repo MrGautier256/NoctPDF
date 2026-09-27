@@ -1,0 +1,13 @@
+{
+  "name": "noctpdf-spikes",
+  "private": true,
+  "type": "module",
+  "description": "Throwaway phase 0 prototypes. Not part of the extension.",
+  "scripts": {},
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.3.289",
+    "pngjs": "^7.0.0",
+    "puppeteer-core": "^25.12.0"
+  }
+}
