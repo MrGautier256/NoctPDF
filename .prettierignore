@@ -1,0 +1,8 @@
+vendor/
+spikes/
+.output/
+.wxt/
+docs/phase0/
+public/_locales/
+package-lock.json
+*.md
