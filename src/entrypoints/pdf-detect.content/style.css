@@ -1,0 +1,14 @@
+/* Any <embed> or <object> fires an animationstart event: that is how the
+   content script notices them without a MutationObserver on the whole page
+   (technique from pdf.js). */
+@keyframes noctpdf-detected-object-or-embed {
+  from {
+    /* empty */
+  }
+}
+object,
+embed {
+  animation-delay: 0s !important;
+  animation-name: noctpdf-detected-object-or-embed !important;
+  animation-play-state: running !important;
+}
