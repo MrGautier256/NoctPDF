@@ -1,0 +1,7 @@
+{
+  "tag": "v6.3.289",
+  "version": "6.3.289",
+  "commit": "1c8020a7d4e43668ac287a3ecf9a8dbea17e4c56",
+  "build": "gulp chromium",
+  "kept": "build/chromium/content"
+}

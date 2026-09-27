@@ -1,0 +1,6 @@
+{
+  "description": "Load the NoctPDF viewer layer. Synchronous script right after viewer.css: it can add its own stylesheet before first paint, and it runs before viewer.mjs (a module, hence deferred), so it can wait for PDFViewerApplication.",
+  "file": "web/viewer.html",
+  "anchor": "<link rel=\"stylesheet\" href=\"viewer.css\" />",
+  "insertAfter": "\n    <script src=\"/noct-viewer.js\"></script>"
+}
