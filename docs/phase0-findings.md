@@ -81,7 +81,7 @@ Différences observées :
 
 Défauts du modèle couleur du prototype, à corriger en phase 2 :
 
-- Le garde-fou de contraste s'appliquait à toutes les couleurs sombres : il écrasait les gris moyens de la rampe. Corrigé dans le prototype en ne l'appliquant qu'aux couleurs saturées (les gris suivent déjà le dégradé `bg` vers `fg`).
+- Le garde-fou de contraste s'appliquait à toutes les couleurs sombres : il écrasait les gris moyens de la rampe (cases 4 à 7 identiques, vers `#8c8c8c`, avec un saut juste avant ; visible sur `recolor-shader.png`, `recolor-hook.png` et `recolor-compare.png`). Correction relevée à la relecture : j'ai modifié le code du prototype (garde-fou limité aux couleurs saturées) **après** les captures, sans refaire de capture pour le vérifier. Le bug n'est donc pas démontré corrigé ; il est traité en phase 2 avec un test de monotonie et des captures avant/après.
 - Les éléments déjà sombres (en-tête de tableau gris foncé, encadré bleu nuit) deviennent clairs. C'est la nature d'une inversion de luminance ; une option "préserver les aplats sombres" sera étudiée en phase 2.
 
 ### Performance (Chrome 153 headless, GPU Iris Plus réel via ANGLE)
@@ -193,9 +193,9 @@ La pile `mix-blend-mode` (`difference`, puis `screen` et `multiply`) marche auss
 |---|---|---|
 | Chrome 153 | PDFium, OOPIF (`viewer-toolbar`) | **56 px** |
 | Opera GX 136 | identique à Chrome | **56 px** |
-| Edge 154 | lecteur Adobe Acrobat (mention "Avec Adobe Acrobat"), autre structure de frames | **40 px** |
+| Edge 154 | lecteur Adobe Acrobat (mention "Avec Adobe Acrobat"), autre structure de frames | **40 px + 1 px de bordure** |
 
-Edge : le moteur B y fonctionne avec un inset de 40 px. On détectera Edge par `navigator.userAgentData.brands` pour choisir l'inset par défaut, plutôt que de déclarer le moteur B non supporté.
+Edge : **inset par défaut de 41 px**. Correction après relecture : la première capture Edge avait été prise avec l'inset de 56 px du prototype, d'où une bande blanche de 8 px non couverte en haut de la page (lignes 48 à 55). Nouvelle mesure, ligne par ligne à x = 600 : lignes 0 à 39 pour la barre (`#3b3b3b`), ligne 40 pour sa bordure (`#4f4f4f`), lignes 41 à 47 pour le fond autour de la page, page à partir de la ligne 48. Avec un inset de 40, la page est entièrement couverte mais la bordure passe en gris clair (`#a8a6a2`) ; 41 px la laisse intacte. La capture `native-edge-backdrop-svg.png` a été refaite en fenêtré avec l'inset corrigé. On détectera Edge par `navigator.userAgentData.brands` pour choisir l'inset par défaut, plutôt que de déclarer le moteur B non supporté.
 
 Limites confirmées (impossibles à contourner) :
 
@@ -215,10 +215,12 @@ Filtre "legacy" : `filter: invert` sur l'embed n'a plus d'effet (§ hypothèses)
 - Brave et Vivaldi : à tester dès qu'ils sont installés (même moteur Chromium, aucun écart attendu).
 - WXT : non évalué en phase 0. Point d'attention : le dossier `public/` doit recevoir `content/` tel quel pour respecter le chemin `/content/web/viewer.html`.
 
-## Questions pour validation
+## Décisions validées (27 septembre 2026)
 
-1. **Recoloration** : d'accord pour l'approche 2 (WebGL2 et traqueur d'images de PDF.js) en principal, l'approche 1 en repli ?
-2. **Espace couleur** : OKLab plutôt que CIELAB (doq) ? OKLab est plus uniforme perceptivement, conserve mieux les teintes bleues, et sa formule est courte, facile à porter en GLSL.
-3. **Base PDF.js** : build `chromium` 6.3.289, dossier `content/` seulement, notre propre service worker, patch d'une ligne dans `viewer.html` ?
-4. **Moteur B** : filtre SVG par défaut, inset 56 px (Chrome, Opera) ou 40 px (Edge), suppression de l'option "legacy" ?
-5. **Node.js** : il n'est pas installé. Je propose `winget install OpenJS.NodeJS.LTS` (Node 24 LTS). Préfères-tu l'installer toi-même, ou utiliser un gestionnaire de versions (fnm, Volta) ?
+1. **Recoloration** : approche 2 (WebGL2) en principal. Le repli n'est **pas** un `DrawHookRecolorer` complet : c'est le même modèle couleur (la référence TypeScript) exécuté en CPU dans un Worker, pour garder les mêmes fonctions. Il sera fait en phase 6. L'interception canvas ne sert plus qu'en mode enregistrement, pour le futur garde-fou de contraste local.
+2. **Espace couleur** : OKLab, avec OKLCh pour les manipulations de teinte et de chroma.
+3. **Base PDF.js** : build `chromium` 6.3.289, dossier `content/` seul, versionné compilé dans `vendor/` (aucun build de PDF.js à l'installation), notre service worker, patch d'une ligne. `minimum_chrome_version` à `"128"`, sans repli pour les versions antérieures.
+4. **Moteur B** : filtre SVG par défaut, option "legacy" supprimée. Inset Edge corrigé à 41 px (voir § 5).
+5. **Node.js** : fnm, avec un `.node-version` (24 LTS) à la racine du dépôt.
+
+Les problèmes relevés sur les captures et les risques à couvrir sont suivis dans `docs/backlog.md`.
