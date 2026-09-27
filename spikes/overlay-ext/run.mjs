@@ -9,7 +9,8 @@ import { launchWithExtension } from "../lib/browsers.mjs";
 const name = process.argv[2] ?? "chrome";
 const headless = !process.argv.includes("--headful");
 const variants = (process.argv.find(a => a.startsWith("--variants="))?.slice(11) ?? "none,backdrop,backdrop-svg,blend,blend-colors,embed-filter").split(",");
-const outDir = new URL(`../out/overlay/${name}${headless ? "" : "-headful"}/`, import.meta.url);
+const inset = process.argv.find(a => a.startsWith("--inset="))?.slice(8);
+const outDir = new URL(`../out/overlay/${name}${headless ? "" : "-headful"}${inset ? `-inset${inset}` : ""}/`, import.meta.url);
 mkdirSync(outDir, { recursive: true });
 const P = f => fileURLToPath(new URL(f, outDir));
 const { server, port } = await startServer();
@@ -21,7 +22,7 @@ const result = { browser: name, version, headless, variants: {} };
 for (const v of variants) {
   const page = await browser.newPage();
   await page.setViewport({ width: 1200, height: 900, deviceScaleFactor: 1 });
-  await page.goto(`${base}/fixtures/sample.pdf?noct=${v.replace('+once', '')}${v.endsWith('+once') ? '&once=1' : ''}`).catch(e => (result.variants[v] = { navError: e.message }));
+  await page.goto(`${base}/fixtures/sample.pdf?noct=${v.replace('+once', '')}${v.endsWith('+once') ? '&once=1' : ''}${inset ? `&inset=${inset}` : ''}`).catch(e => (result.variants[v] = { navError: e.message }));
   await settle(4000);
   await page.screenshot({ path: P(`${v}.png`) });
   const info = { frames: page.frames().map(f => f.url()) };
