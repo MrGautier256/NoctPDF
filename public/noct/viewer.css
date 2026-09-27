@@ -1,0 +1,7 @@
+/*
+ * NoctPDF layer for the PDF.js viewer. Loaded before first paint by
+ * noct-viewer.js; the --noct-* variables come from the settings.
+ */
+:root.noctpdf {
+  --body-bg-color: var(--noct-surround, rgb(20 21 23));
+}
