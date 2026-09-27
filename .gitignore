@@ -6,3 +6,6 @@ spikes/fixtures/*.pdf
 dist/
 *.log
 .claude/settings.local.json
+test-results/
+playwright-report/
+test/fixtures/*.pdf
