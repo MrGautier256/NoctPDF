@@ -1,0 +1,89 @@
+{
+  "extName": {
+    "message": "NoctPDF : mode sombre pour les PDF"
+  },
+  "extDescription": {
+    "message": "Un vrai mode sombre pour les PDF : pages thémées, images préservées, couleurs lisibles et lecteur PDF personnalisable."
+  },
+  "stateOn": {
+    "message": "Activé"
+  },
+  "stateOff": {
+    "message": "Désactivé"
+  },
+  "engineLabel": {
+    "message": "Moteur"
+  },
+  "engine_enhanced": {
+    "message": "Lecteur amélioré"
+  },
+  "engine_native_overlay": {
+    "message": "Calque sur le lecteur intégré"
+  },
+  "engine_off": {
+    "message": "Désactivé"
+  },
+  "openNative": {
+    "message": "Ouvrir dans le lecteur intégré"
+  },
+  "openEnhanced": {
+    "message": "Ouvrir dans le lecteur amélioré"
+  },
+  "openOptions": {
+    "message": "Options"
+  },
+  "optionsProvisional": {
+    "message": "Page provisoire : les options complètes arrivent dans une prochaine version."
+  },
+  "sectionInterception": {
+    "message": "Interception"
+  },
+  "interception_httpPdfs": {
+    "message": "Ouvrir les PDF du web dans le lecteur amélioré"
+  },
+  "interception_localFiles": {
+    "message": "Ouvrir les PDF locaux (file://) dans le lecteur amélioré"
+  },
+  "interception_embeddedPdfs": {
+    "message": "Traiter aussi les PDF intégrés aux pages web (cadres, embed, object)"
+  },
+  "interception_respectAttachmentDownloads": {
+    "message": "Télécharger les PDF que le site envoie en pièce jointe"
+  },
+  "sectionDiagnostics": {
+    "message": "Diagnostic"
+  },
+  "diagExtension": {
+    "message": "Version de l'extension"
+  },
+  "diagBrowser": {
+    "message": "Navigateur"
+  },
+  "diagResponseHeaders": {
+    "message": "Règles sur les en-têtes de réponse (DNR)"
+  },
+  "diagResponseHeadersMissing": {
+    "message": "Non prises en charge : les PDF ne sont pas interceptés"
+  },
+  "diagFileAccess": {
+    "message": "Accès aux URL de fichier"
+  },
+  "diagFileAccessMissing": {
+    "message": "Non autorisé (activez « Autoriser l'accès aux URL de fichier » sur la page de l'extension)"
+  },
+  "diagRules": {
+    "message": "Règles actives (dynamiques / de session)"
+  },
+  "diagLastPdf": {
+    "message": "Dernier PDF ouvert"
+  },
+  "none": {
+    "message": "Aucun"
+  },
+  "yes": {
+    "message": "Oui"
+  },
+  "refresh": {
+    "message": "Actualiser"
+  }
+}

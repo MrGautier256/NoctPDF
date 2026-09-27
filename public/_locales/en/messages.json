@@ -1,0 +1,89 @@
+{
+  "extName": {
+    "message": "NoctPDF: dark mode for PDFs"
+  },
+  "extDescription": {
+    "message": "A true dark mode for PDFs: themed pages, images preserved, readable colors, and a customizable PDF reader."
+  },
+  "stateOn": {
+    "message": "On"
+  },
+  "stateOff": {
+    "message": "Off"
+  },
+  "engineLabel": {
+    "message": "Engine"
+  },
+  "engine_enhanced": {
+    "message": "Enhanced reader"
+  },
+  "engine_native_overlay": {
+    "message": "Overlay on the built-in reader"
+  },
+  "engine_off": {
+    "message": "Off"
+  },
+  "openNative": {
+    "message": "Open in the built-in reader"
+  },
+  "openEnhanced": {
+    "message": "Open in the enhanced reader"
+  },
+  "openOptions": {
+    "message": "Options"
+  },
+  "optionsProvisional": {
+    "message": "Provisional page: the complete options arrive in a later version."
+  },
+  "sectionInterception": {
+    "message": "Interception"
+  },
+  "interception_httpPdfs": {
+    "message": "Open web PDFs in the enhanced reader"
+  },
+  "interception_localFiles": {
+    "message": "Open local PDFs (file://) in the enhanced reader"
+  },
+  "interception_embeddedPdfs": {
+    "message": "Also handle PDFs embedded in web pages (frames, embed, object)"
+  },
+  "interception_respectAttachmentDownloads": {
+    "message": "Download PDFs that the site sends as attachments"
+  },
+  "sectionDiagnostics": {
+    "message": "Diagnostics"
+  },
+  "diagExtension": {
+    "message": "Extension version"
+  },
+  "diagBrowser": {
+    "message": "Browser"
+  },
+  "diagResponseHeaders": {
+    "message": "Response header rules (DNR)"
+  },
+  "diagResponseHeadersMissing": {
+    "message": "Unsupported: PDFs are not intercepted"
+  },
+  "diagFileAccess": {
+    "message": "Access to file URLs"
+  },
+  "diagFileAccessMissing": {
+    "message": "Not allowed (enable \"Allow access to file URLs\" on the extension page)"
+  },
+  "diagRules": {
+    "message": "Active rules (dynamic / session)"
+  },
+  "diagLastPdf": {
+    "message": "Last PDF opened"
+  },
+  "none": {
+    "message": "None"
+  },
+  "yes": {
+    "message": "Yes"
+  },
+  "refresh": {
+    "message": "Refresh"
+  }
+}
