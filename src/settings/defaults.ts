@@ -1,0 +1,54 @@
+import { SETTINGS_VERSION, type Settings } from "./schema";
+
+export const DEFAULT_SETTINGS: Settings = {
+  version: SETTINGS_VERSION,
+  enabled: true,
+  engine: "enhanced",
+  activation: { mode: "always" },
+  theme: {
+    presetId: "chrome-dark",
+    bg: "#1e1f22",
+    fg: "#e6e3dc",
+    surround: "#141517",
+    pageShadow: true,
+    pageGap: 12,
+  },
+  tuning: {
+    brightness: 1,
+    contrast: 1,
+    gamma: 1,
+    saturation: 1,
+    warmth: 0,
+    minTextContrast: 4.5,
+    recolorVectors: true,
+    preserveSemanticHues: true,
+  },
+  images: {
+    mode: "dim",
+    dimLevel: 0.85,
+    scannedPages: "recolor",
+    scanDetectionThreshold: 0.85,
+  },
+  ui: {
+    skin: "enhanced",
+    colorSource: "theme",
+    autoHideToolbar: false,
+    animations: true,
+    density: "compact",
+  },
+  interception: {
+    httpPdfs: true,
+    localFiles: true,
+    embeddedPdfs: true,
+    respectAttachmentDownloads: true,
+  },
+  nativeOverlay: {
+    style: "smart",
+    toolbarInset: "auto",
+    coverToolbar: false,
+  },
+  print: { useTheme: false },
+  peekKey: "Alt",
+  siteRules: [],
+  rememberPerDocument: true,
+};
