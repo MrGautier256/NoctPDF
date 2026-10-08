@@ -8,6 +8,7 @@ import type { Settings } from "../settings/schema";
 import { isSettingsChange, readSettings } from "../settings/storage";
 import {
   RecolorController,
+  type AnnotationLayerRenderedEvent,
   type PageRenderedEvent,
   type PdfPageViewLike,
   type RecolorTheme,
@@ -84,6 +85,7 @@ function themeFrom(settings: Settings): RecolorTheme {
     fg: settings.theme.fg,
     chroma: settings.tuning.saturation,
     minContrast: settings.tuning.minTextContrast,
+    hideLinkBorders: settings.theme.hideLinkBorders,
     tuning: {
       brightness: settings.tuning.brightness,
       contrast: settings.tuning.contrast,
@@ -149,14 +151,17 @@ export function startViewerLayer(): void {
       const coords = view?.imageCoordinates;
       diag.imageRects[evt.pageNumber] = coords ? coords.length / 6 : null;
     });
+    app.eventBus.on("annotationlayerrendered", e => {
+      const evt = e as unknown as AnnotationLayerRenderedEvent;
+      controller.onAnnotationLayerRendered(evt.source.annotationLayer?.div);
+    });
     diag.ready = true;
 
     storage.onChanged.addListener(changes => {
       if (!isSettingsChange(Object.keys(changes))) return;
       void readSettings(storage.sync()).then(({ settings: next }) => {
         const themeChanged =
-          next.theme.bg !== current.theme.bg ||
-          next.theme.fg !== current.theme.fg ||
+          JSON.stringify(next.theme) !== JSON.stringify(current.theme) ||
           JSON.stringify(next.tuning) !== JSON.stringify(current.tuning);
         const imagesChanged = JSON.stringify(next.images) !== JSON.stringify(current.images);
         current = next;
