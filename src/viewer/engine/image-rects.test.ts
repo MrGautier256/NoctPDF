@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rectBounds, rectsFromTrackedCoordinates } from "./image-rects";
+import { rectBasis, rectBounds, rectsFromTrackedCoordinates } from "./image-rects";
 
 describe("rectsFromTrackedCoordinates", () => {
   it("returns nothing for an empty or missing tracker result", () => {
@@ -36,5 +36,30 @@ describe("rectBounds", () => {
 
   it("clamps to the page for a rect that overshoots it", () => {
     expect(rectBounds([-0.1, -0.1, 1.1, -0.1, -0.1, 1.1])).toEqual({ x0: 0, y0: 0, x1: 1, y1: 1 });
+  });
+});
+
+describe("rectBasis", () => {
+  it("gives u=0,v=0 at the origin corner and u=1,v=1 at the opposite corners, for an axis-aligned rect", () => {
+    const p = [0.2, 0.3, 0.6, 0.3, 0.2, 0.7] as const; // origin, +U (x), +V (y)
+    const { u, v } = rectBasis(p);
+    const dot3 = (b: readonly [number, number, number], x: number, y: number) => b[0] * x + b[1] * y + b[2];
+    expect(dot3(u, 0.2, 0.3)).toBeCloseTo(0, 10);
+    expect(dot3(v, 0.2, 0.3)).toBeCloseTo(0, 10);
+    expect(dot3(u, 0.6, 0.3)).toBeCloseTo(1, 10);
+    expect(dot3(v, 0.6, 0.3)).toBeCloseTo(0, 10);
+    expect(dot3(u, 0.2, 0.7)).toBeCloseTo(0, 10);
+    expect(dot3(v, 0.2, 0.7)).toBeCloseTo(1, 10);
+  });
+
+  it("handles a rotated rect the same way", () => {
+    // A square rotated 45deg: origin (0,0), +U at (1,1), +V at (-1,1) (both unit-length axes in this basis).
+    const p = [0, 0, 1, 1, -1, 1] as const;
+    const { u, v } = rectBasis(p);
+    const dot3 = (b: readonly [number, number, number], x: number, y: number) => b[0] * x + b[1] * y + b[2];
+    expect(dot3(u, 1, 1)).toBeCloseTo(1, 10);
+    expect(dot3(v, 1, 1)).toBeCloseTo(0, 10);
+    expect(dot3(u, -1, 1)).toBeCloseTo(0, 10);
+    expect(dot3(v, -1, 1)).toBeCloseTo(1, 10);
   });
 });
