@@ -15,3 +15,8 @@ export interface ImageRect {
   p: readonly [number, number, number, number, number, number];
   mode: ImageRectMode;
 }
+
+/** Same shape, before a mode has been assigned (geometry only). */
+export interface RawRect {
+  p: readonly [number, number, number, number, number, number];
+}
