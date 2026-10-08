@@ -37,13 +37,21 @@ declare global {
 }
 
 const THEME_CACHE = "noctpdf.viewerTheme";
-type CachedTheme = Pick<Settings["theme"], "bg" | "fg" | "surround">;
+type CachedTheme = Pick<Settings["theme"], "bg" | "fg" | "surround" | "selectionColor">;
+
+/** "#rrggbb" -> "r g b / alpha", for a translucent CSS color from an opaque setting. */
+function withAlpha(hex: string, alpha: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgb(${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255} / ${alpha})`;
+}
 
 function applyTheme(t: CachedTheme): void {
   const s = document.documentElement.style;
   s.setProperty("--noct-bg", t.bg);
   s.setProperty("--noct-fg", t.fg);
   s.setProperty("--noct-surround", t.surround);
+  if (t.selectionColor) s.setProperty("--noct-selection", withAlpha(t.selectionColor, 0.4));
+  else s.removeProperty("--noct-selection");
 }
 
 function injectStylesheet(): void {
@@ -120,7 +128,12 @@ export function startViewerLayer(): void {
   window.__noctpdf = diag;
 
   void readSettings(storage.sync()).then(async ({ settings }) => {
-    const t = { bg: settings.theme.bg, fg: settings.theme.fg, surround: settings.theme.surround };
+    const t: CachedTheme = {
+      bg: settings.theme.bg,
+      fg: settings.theme.fg,
+      surround: settings.theme.surround,
+      selectionColor: settings.theme.selectionColor,
+    };
     applyTheme(t);
     try {
       localStorage.setItem(THEME_CACHE, JSON.stringify(t));
@@ -128,7 +141,17 @@ export function startViewerLayer(): void {
       // Not fatal.
     }
 
-    const controller = new RecolorController(themeFrom(settings), settings.images);
+    // If WebGL2 is unavailable (GPU denylisted, etc.) fall back to showing pages unthemed rather
+    // than hidden forever: the no-white-flash CSS only hides a canvas until data-noct is set,
+    // which never happens without a working recolorer. Phase 6 replaces this with a CPU Worker
+    // that runs the same color model (docs/backlog.md); for now this is "no theme" not "no PDF".
+    let controller: RecolorController | null = null;
+    try {
+      controller = new RecolorController(themeFrom(settings), settings.images);
+    } catch (err) {
+      console.error("NoctPDF: recoloring engine unavailable, showing pages unthemed", err);
+      document.documentElement.classList.add("noct-no-shader");
+    }
     let current = settings;
 
     const app = await whenApp();
@@ -144,7 +167,7 @@ export function startViewerLayer(): void {
     });
     app.eventBus.on("pagerendered", e => {
       const evt = e as unknown as PageRenderedEvent;
-      controller.onPageRendered(evt);
+      controller?.onPageRendered(evt);
       if (evt.isDetailView) return;
       diag.pagesRendered++;
       const view: PdfPageViewLike | undefined = app.pdfViewer.getPageView(evt.pageNumber - 1);
@@ -153,7 +176,7 @@ export function startViewerLayer(): void {
     });
     app.eventBus.on("annotationlayerrendered", e => {
       const evt = e as unknown as AnnotationLayerRenderedEvent;
-      controller.onAnnotationLayerRendered(evt.source.annotationLayer?.div);
+      controller?.onAnnotationLayerRendered(evt.source.annotationLayer?.div);
     });
     diag.ready = true;
 
@@ -165,23 +188,37 @@ export function startViewerLayer(): void {
           JSON.stringify(next.tuning) !== JSON.stringify(current.tuning);
         const imagesChanged = JSON.stringify(next.images) !== JSON.stringify(current.images);
         current = next;
-        if (themeChanged) controller.setTheme(themeFrom(next));
-        if (imagesChanged) controller.setImagesSettings(next.images);
+        if (themeChanged) {
+          controller?.setTheme(themeFrom(next));
+          const t: CachedTheme = {
+            bg: next.theme.bg,
+            fg: next.theme.fg,
+            surround: next.theme.surround,
+            selectionColor: next.theme.selectionColor,
+          };
+          applyTheme(t);
+          try {
+            localStorage.setItem(THEME_CACHE, JSON.stringify(t));
+          } catch {
+            // Not fatal.
+          }
+        }
+        if (imagesChanged) controller?.setImagesSettings(next.images);
       });
     });
 
     const matchesPeekKey = (e: KeyboardEvent) => current.peekKey !== "none" && e.key === current.peekKey;
     addEventListener("keydown", e => {
-      if (matchesPeekKey(e) && !e.repeat) controller.setPeeking(true);
+      if (matchesPeekKey(e) && !e.repeat) controller?.setPeeking(true);
     });
     addEventListener("keyup", e => {
-      if (matchesPeekKey(e)) controller.setPeeking(false);
+      if (matchesPeekKey(e)) controller?.setPeeking(false);
     });
-    addEventListener("blur", () => controller.setPeeking(false));
+    addEventListener("blur", () => controller?.setPeeking(false));
 
     addEventListener("beforeprint", () => {
-      if (!current.print.useTheme) controller.setPrintingOriginal(true);
+      if (!current.print.useTheme) controller?.setPrintingOriginal(true);
     });
-    addEventListener("afterprint", () => controller.setPrintingOriginal(false));
+    addEventListener("afterprint", () => controller?.setPrintingOriginal(false));
   });
 }
