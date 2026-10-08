@@ -5,3 +5,35 @@
 :root.noctpdf {
   --body-bg-color: var(--noct-surround, rgb(20 21 23));
 }
+
+/*
+ * No white flash (phase 0 §1): PDF.js shows a canvas progressively as it
+ * renders, before our post-processing runs. The page itself takes the theme
+ * background immediately via PDF.js' own --page-bg-color hook (so there is
+ * no blank-white rectangle while a page is off-screen or not yet rendered),
+ * and each page's canvas stays hidden until data-noct confirms it has been
+ * recolored, so the untreated render is never visible even for one frame.
+ *
+ * noct-no-shader (set when WebGL2 is unavailable, see src/viewer/layer.ts)
+ * turns this off: better an unthemed page than a hidden one.
+ */
+:root.noctpdf .pdfViewer .page {
+  --page-bg-color: var(--noct-bg, rgb(255 255 255));
+}
+
+:root.noctpdf:not(.noct-no-shader) .pdfViewer .page .canvasWrapper > canvas:not([data-noct]) {
+  visibility: hidden;
+}
+
+/* Text layer glyphs are already transparent in PDF.js; only the selection and search-match colors need the theme. */
+:root.noctpdf .textLayer {
+  ::selection,
+  ::-moz-selection {
+    background: var(--noct-selection, rgb(61 112 209 / 0.4));
+  }
+
+  .highlight {
+    --highlight-bg-color: rgb(255 212 0 / 0.35);
+    --highlight-selected-bg-color: rgb(255 140 0 / 0.5);
+  }
+}
