@@ -13,6 +13,7 @@ import type { Settings } from "../../settings/schema";
 import type { Affine } from "./affine";
 import { classifyImageSample, isScannedPage, staticImageMode } from "./image-policy";
 import { rectBounds, rectsFromTrackedCoordinates, type DetailViewArea } from "./image-rects";
+import { recolorBorderColor, rewriteBorderSvgStroke } from "./link-borders";
 import {
   collectImageRectsFromOperatorList,
   shouldUseOperatorListFallback,
@@ -35,7 +36,12 @@ export interface PdfPageViewLike {
   imageCoordinates: ArrayLike<number> | null | undefined;
   pdfPage: PdfPageProxyLike | null;
   viewport: { transform: Affine; width: number; height: number };
+  annotationLayer?: { div: HTMLElement | null } | null;
   pageView?: PdfPageViewLike; // detail views only: back-reference to the parent
+}
+
+export interface AnnotationLayerRenderedEvent {
+  source: PdfPageViewLike;
 }
 
 export interface PageRenderedEvent {
@@ -58,6 +64,12 @@ export interface RecolorTheme {
   chroma: number;
   minContrast: number;
   tuning: Tuning;
+  hideLinkBorders: boolean;
+}
+
+interface BorderOriginal {
+  borderColor?: string;
+  backgroundImage?: string;
 }
 
 export class RecolorController {
@@ -69,11 +81,16 @@ export class RecolorController {
   private readonly textEmptyByPage = new Map<number, boolean>();
   /** Flat, coords-shaped rects from the operator-list walk, for pages where the tracker came back empty wrongly. */
   private readonly fallbackCoordsByPage = new Map<number, number[]>();
+  /** Annotation-layer roots seen so far (phase 0's link-border bug), re-swept on theme change. */
+  private readonly annotationRoots = new Set<Element>();
+  private readonly borderOriginals = new WeakMap<Element, BorderOriginal>();
   private imagesSettings: Settings["images"];
+  private hideLinkBorders: boolean;
   private peeking = false;
 
   constructor(theme: RecolorTheme, images: Settings["images"]) {
     this.imagesSettings = images;
+    this.hideLinkBorders = theme.hideLinkBorders;
     this.remap = this.buildRemap(theme);
     this.recolorer.setLut(buildLut(this.remap, 17));
   }
@@ -87,8 +104,54 @@ export class RecolorController {
   /** Call when the theme or tuning changes: rebuilds the LUT and reprocesses every cached, still-visible page. */
   setTheme(theme: RecolorTheme): void {
     this.remap = this.buildRemap(theme);
+    this.hideLinkBorders = theme.hideLinkBorders;
     this.recolorer.setLut(buildLut(this.remap, 17));
     this.reprocessAll();
+    this.resweepAnnotationBorders();
+  }
+
+  /**
+   * Recolors (or hides) link annotation borders in a rendered annotation
+   * layer: the hyperref green-border bug (docs/backlog.md). PDF.js bakes the
+   * border color either into a plain inline style, or, for a link that wraps
+   * across lines, into an SVG `stroke` inside a `background-image` data URI;
+   * neither is reachable by the shader (canvas-only) or by a plain stylesheet
+   * rule (it would lose to the inline style, and cannot reach inside a data
+   * URI at all), so this reads and rewrites them directly.
+   */
+  onAnnotationLayerRendered(root: Element | null | undefined): void {
+    if (!root) return;
+    this.annotationRoots.add(root);
+    for (const el of root.querySelectorAll<HTMLElement>('[style*="border-color"], .hasBorder')) {
+      let original = this.borderOriginals.get(el);
+      if (!original) {
+        original = {
+          borderColor: el.style.borderColor || undefined,
+          backgroundImage: el.classList.contains("hasBorder") ? el.style.backgroundImage || undefined : undefined,
+        };
+        this.borderOriginals.set(el, original);
+      }
+      if (this.hideLinkBorders) {
+        if (original.borderColor) el.style.setProperty("border-style", "none", "important");
+        if (original.backgroundImage) el.style.setProperty("background-image", "none", "important");
+        continue;
+      }
+      if (original.borderColor) {
+        const next = recolorBorderColor(original.borderColor, this.remap);
+        if (next) el.style.setProperty("border-color", next, "important");
+      }
+      if (original.backgroundImage) {
+        const next = rewriteBorderSvgStroke(original.backgroundImage, this.remap);
+        if (next) el.style.setProperty("background-image", next, "important");
+      }
+    }
+  }
+
+  private resweepAnnotationBorders(): void {
+    for (const root of this.annotationRoots) {
+      if (root.isConnected) this.onAnnotationLayerRendered(root);
+      else this.annotationRoots.delete(root);
+    }
   }
 
   setImagesSettings(images: Settings["images"]): void {

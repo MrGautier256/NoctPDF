@@ -22,6 +22,8 @@ export const ThemeSchema = v.object({
   accents: v.optional(v.array(Hex)),
   linkColor: v.optional(Hex),
   selectionColor: v.optional(Hex),
+  /** Hide link annotation borders instead of recoloring them (hyperref documents). */
+  hideLinkBorders: v.boolean(),
   /** Background around the pages. */
   surround: Hex,
   pageShadow: v.boolean(),

@@ -9,6 +9,7 @@ export const DEFAULT_SETTINGS: Settings = {
     presetId: "chrome-dark",
     bg: "#1e1f22",
     fg: "#e6e3dc",
+    hideLinkBorders: false,
     surround: "#141517",
     pageShadow: true,
     pageGap: 12,
