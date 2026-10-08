@@ -14,10 +14,14 @@ import {
   type RecolorTheme,
 } from "./engine/recolor-controller";
 
+interface ThumbnailViewLike {
+  image: HTMLImageElement | null;
+}
 interface PdfjsApp {
   initializedPromise: Promise<void>;
   eventBus: { on(name: string, fn: (e: Record<string, unknown>) => void): void };
   pdfViewer: { getPageView(i: number): PdfPageViewLike | undefined };
+  pdfThumbnailViewer?: { getThumbnail(i: number): ThumbnailViewLike | undefined | null };
   url: string;
 }
 declare global {
@@ -83,6 +87,35 @@ async function whenApp(): Promise<PdfjsApp> {
  */
 function enableImageTrackerOnly(): void {
   window.PDFViewerApplicationOptions?.set("imagesRightClickMinSize", 999999999);
+}
+
+const thumbnailObjectUrls = new WeakMap<HTMLImageElement, string>();
+
+/**
+ * PDF.js' own `pagerendered` listener (web/viewer.mjs' onPageRendered,
+ * registered during app initialization, strictly before ours since we only
+ * attach after `initializedPromise`) copies `pageView.canvas` into the
+ * thumbnail sidebar image synchronously, before our listener gets to recolor
+ * that canvas, whenever the thumbnails panel is already open at render time.
+ * Confirmed by reading the vendored source (docs/backlog.md), not assumed:
+ * `pageView.thumbnailCanvas` is literally `pageView.canvas`, so the
+ * thumbnail would otherwise freeze on the untreated pixels. This redraws it
+ * from our already-recolored canvas right after we process each page.
+ * Known gap: a later theme change reprocesses visible pages but does not
+ * re-run this, so an open thumbnails panel can go stale until the page
+ * re-renders on its own (tracked in docs/backlog.md).
+ */
+function refreshThumbnail(app: PdfjsApp, pageNumber: number, canvas: HTMLCanvasElement): void {
+  const img = app.pdfThumbnailViewer?.getThumbnail(pageNumber - 1)?.image;
+  if (!img) return;
+  canvas.toBlob(blob => {
+    if (!blob) return;
+    const previous = thumbnailObjectUrls.get(img);
+    const url = URL.createObjectURL(blob);
+    img.src = url;
+    thumbnailObjectUrls.set(img, url);
+    if (previous) URL.revokeObjectURL(previous);
+  });
 }
 
 /** tuning.saturation drives the remap's own chroma scaling (pre-LUT, phase 0's design); the
@@ -169,6 +202,7 @@ export function startViewerLayer(): void {
       const evt = e as unknown as PageRenderedEvent;
       controller?.onPageRendered(evt);
       if (evt.isDetailView) return;
+      if (controller && evt.source.canvas) refreshThumbnail(app, evt.pageNumber, evt.source.canvas);
       diag.pagesRendered++;
       const view: PdfPageViewLike | undefined = app.pdfViewer.getPageView(evt.pageNumber - 1);
       const coords = view?.imageCoordinates;
