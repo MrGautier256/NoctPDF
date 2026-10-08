@@ -61,21 +61,36 @@ const smoothstep = (e0, e1, x) => {
 
 /**
  * Returns rgb -> rgb for a theme. Grays follow the bg->fg gradient (white
- * becomes bg, black becomes fg). Chromatic colors keep their hue, get an
- * inverted lightness inside the theme range and a scaled chroma. Colors that
- * were dark enough to be text are lifted until they reach minContrast vs bg.
+ * becomes bg, black becomes fg). Phase 2 fix (docs/ADR-001-recoloration.md,
+ * src/color/remap.ts is the tested reference this mirrors): saturated colors
+ * no longer share that full inversion, which collapsed them to the gamut
+ * edge at low lightness (an orange triangle turning brown); instead they
+ * land in a "readable band" inside the theme's own bg->fg range, keeping
+ * hue and enough chroma. Very light saturated colors (highlights, pastel
+ * fills) are exempted and still invert fully. Colors that were dark enough
+ * to be text are lifted until they reach minContrast vs bg. Pure white/black
+ * snap exactly to bg/fg so the shader's white matches the .page background.
  */
 export function makeRemap({ bg, fg, chroma = 1, minContrast = 4.5 }) {
   const bgRgb = hexToRgb(bg), fgRgb = hexToRgb(fg);
   const B = rgbToOklab(bgRgb), F = rgbToOklab(fgRgb);
+  const bandLo = B[0] + (F[0] - B[0]) * 0.35;
+  const bandHi = B[0] + (F[0] - B[0]) * 0.7;
+  const WHITE_EPS = 1 / 510, BLACK_EPS = 1 / 510;
   return rgb => {
+    if (rgb[0] >= 1 - WHITE_EPS && rgb[1] >= 1 - WHITE_EPS && rgb[2] >= 1 - WHITE_EPS) return bgRgb;
+    if (rgb[0] <= BLACK_EPS && rgb[1] <= BLACK_EPS && rgb[2] <= BLACK_EPS) return fgRgb;
     const [L, a, b] = rgbToOklab(rgb);
     const C = Math.hypot(a, b);
     const t = 1 - Math.min(1, Math.max(0, L));
-    const gL = B[0] + (F[0] - B[0]) * t;
+    const invertedL = B[0] + (F[0] - B[0]) * t;
     const ga = B[1] + (F[1] - B[1]) * t;
     const gb = B[2] + (F[2] - B[2]) * t;
     const w = smoothstep(0.015, 0.06, C);
+    const veryLight = smoothstep(0.8, 0.92, L);
+    const bandAmount = w * (1 - veryLight);
+    const bandedL = bandLo + t * (bandHi - bandLo);
+    const gL = invertedL * (1 - bandAmount) + bandedL * bandAmount;
     let out = [gL, ga + (a * chroma - ga) * w, gb + (b * chroma - gb) * w];
     if (w > 0.5 && L < 0.75 && minContrast > 1 && contrast(oklabToRgb(out), bgRgb) < minContrast) {
       // Text guard, chromatic colors only (grays already follow bg->fg):
@@ -92,7 +107,9 @@ export function makeRemap({ bg, fg, chroma = 1, minContrast = 4.5 }) {
 }
 
 /** Bakes the remap into an N^3 RGBA8 LUT (r fastest), for a WebGL 3D texture. */
-export function buildLut(remap, n = 33) {
+// n=17 matches production (src/color/remap.ts): phase 0 measured 33^3 as too
+// slow for a sub-200ms theme switch (250-530ms) and 17^3 as comfortably fast.
+export function buildLut(remap, n = 17) {
   const data = new Uint8Array(n * n * n * 4);
   let i = 0;
   for (let b = 0; b < n; b++) {

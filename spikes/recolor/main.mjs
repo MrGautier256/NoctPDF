@@ -1,8 +1,77 @@
 // Phase 0 recolor harness. Query params:
 //   mode=none|hook|shader  file=<pdf url>  scale=<n>  probe=1  theme=<id>
+
+// Test-harness-only shim: this sandbox's pinned Playwright Chromium (141)
+// predates V8's Map/WeakMap.prototype.getOrInsertComputed, which pdf.js
+// 6.3.289 uses internally. Real target browsers (Chrome 128+) ship it; this
+// never ships with the extension, it only lets phase 2 captures run here.
+for (const C of [Map, WeakMap]) {
+  if (!C.prototype.getOrInsertComputed) {
+    C.prototype.getOrInsertComputed = function (key, compute) {
+      if (this.has(key)) return this.get(key);
+      const v = compute(key);
+      this.set(key, v);
+      return v;
+    };
+  }
+}
+
 import { makeRemap, buildLut, makeStyleMapper, hexToRgb } from "./color.mjs";
 import { installHook } from "./hook.mjs";
 import { ShaderRecolorer } from "./shader.mjs";
+
+// Phase 2 fix: scanned pages get a 5th/95th percentile levels stretch before
+// the LUT (src/color/scan-normalize.ts is the tested reference), so paper
+// that is not pure white does not end up lighter than the page background.
+function stretchScanInPlace(copy) {
+  const ctx = copy.getContext("2d");
+  const { width, height } = copy;
+  const img = ctx.getImageData(0, 0, width, height);
+  const d = img.data;
+  const hist = new Uint32Array(256);
+  for (let i = 0; i < d.length; i += 4 * 7) {
+    // every 7th pixel: plenty for a stable histogram, much cheaper than all of them
+    const y = Math.round(0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]);
+    hist[Math.max(0, Math.min(255, y))]++;
+  }
+  const total = hist.reduce((a, b) => a + b, 0);
+  if (!total) return;
+  let cum = 0, lo = 0, hi = 255, loFound = false;
+  for (let v = 0; v < 256; v++) {
+    cum += hist[v];
+    if (!loFound && cum >= 0.05 * total) { lo = v; loFound = true; }
+    if (cum >= 0.95 * total) { hi = v; break; }
+  }
+  if (hi <= lo) hi = Math.min(255, lo + 1);
+  const scale = 255 / (hi - lo);
+  for (let i = 0; i < d.length; i += 4) {
+    d[i] = Math.max(0, Math.min(255, (d[i] - lo) * scale));
+    d[i + 1] = Math.max(0, Math.min(255, (d[i + 1] - lo) * scale));
+    d[i + 2] = Math.max(0, Math.min(255, (d[i + 2] - lo) * scale));
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+// Phase 2 fix: hyperref-style link borders (src/viewer/engine/link-borders.ts
+// is the tested reference). PDF.js bakes the border color into either a
+// plain inline style or, for a link that wraps across lines, into an SVG
+// stroke inside a background-image data URI; neither is reached by the
+// shader (canvas-only) or by a plain stylesheet rule.
+function recolorLinkBorders(root, map) {
+  for (const el of root.querySelectorAll('[style*="border-color"], .hasBorder')) {
+    if (el.style.borderColor && !el.dataset.noctOrigBorder) el.dataset.noctOrigBorder = el.style.borderColor;
+    if (el.dataset.noctOrigBorder) el.style.setProperty("border-color", map(el.dataset.noctOrigBorder), "important");
+    if (el.classList.contains("hasBorder")) {
+      if (!el.dataset.noctOrigBg) el.dataset.noctOrigBg = el.style.backgroundImage;
+      const bg = el.dataset.noctOrigBg;
+      const m = /stroke="([^"]*)"/.exec(bg);
+      if (m) {
+        const recolored = map(m[1]);
+        el.style.setProperty("background-image", bg.slice(0, m.index) + `stroke="${recolored}"` + bg.slice(m.index + m[0].length), "important");
+      }
+    }
+  }
+}
 
 const q = new URLSearchParams(location.search);
 const mode = q.get("mode") ?? "shader";
@@ -83,6 +152,15 @@ window.__viewer = viewer;
 const renderStart = new Map();
 const originals = new Map(); // pageNumber -> { copy: OffscreenCanvas, canvas, rects }
 const textEmpty = new Map();
+const stretchedPages = new Set();
+
+if (mode !== "none") {
+  const linkMap = makeStyleMapper(remap);
+  eventBus.on("annotationlayerrendered", ev => {
+    const root = ev.source.annotationLayer?.div;
+    if (root) recolorLinkBorders(root, linkMap);
+  });
+}
 
 eventBus.on("pagerender", ({ pageNumber }) => renderStart.set(pageNumber, performance.now()));
 eventBus.on("pagerendered", ev => {
@@ -101,6 +179,10 @@ eventBus.on("pagerendered", ev => {
   const t0 = performance.now();
   const copy = new OffscreenCanvas(canvas.width, canvas.height);
   copy.getContext("2d").drawImage(canvas, 0, 0);
+  if (!isDetailView && textEmpty.get(pageNumber) && !stretchedPages.has(pageNumber)) {
+    stretchScanInPlace(copy);
+    stretchedPages.add(pageNumber);
+  }
   const tCopy = performance.now();
   const rects = buildRects(coords, canvas, isDetailView, pageNumber, copy);
   const out = recolorer.process(copy, rects, { split: window.__split ?? 0 });
