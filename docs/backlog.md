@@ -31,6 +31,16 @@ Points relevés à la revue de la phase 0, avec la phase où ils seront traités
 - [ ] Affichage direct du résultat WebGL (`transferToImageBitmap` vers `bitmaprenderer`) pour supprimer la recopie : pas fait. Les mesures de phase 2 (`docs/phase2-findings.md`) montrent que c'est justement la recopie GPU→canvas qui coûte le plus cher sous rendu logiciel ; à re-prioriser selon les mesures sur GPU réel.
 - [ ] Mode comparaison (moitié originale, moitié thémée) exposé à l'utilisateur : le shader le supporte déjà (`ProcessOptions.split`), mais rien dans l'interface (popup/options, phase 3) ne le pilote encore.
 
+## Phase 3 : interface
+
+- [x] Préréglages de thème, éditeur avec aperçu en direct et import/export, page d'options complète, habillage « enhanced » de la barre d'outils PDF.js. Détails et décisions : `docs/phase3-findings.md`.
+- [x] Bug trouvé en vérifiant réellement l'UI dans un navigateur (pas seulement le typecheck) : ajouter une règle par site l'effaçait aussitôt (schéma trop strict sur un motif vide). Corrigé, testé (`settings.test.ts`).
+- [ ] Choix du moteur par site depuis le popup : les règles par site existent mais rien ne les résout contre l'onglet actif.
+- [ ] « Réappliquer » (popup, moteur B) : sans objet avant la phase 4.
+- [ ] Mode comparaison exposé dans l'interface (popup ou options) : le shader le supporte déjà (`ProcessOptions.split`).
+- [ ] Miniatures qui restent à jour pendant un changement de thème en direct (lacune phase 2, toujours ouverte).
+- [ ] Suite e2e (`npm run test:e2e`) : la version de Chromium préinstallée dans les sessions sandboxées (1194) ne correspond pas à celle attendue par `@playwright/test` 1.63 (1243), et même en pointant vers l'exécutable disponible, le service worker n'expose pas `chrome.declarativeNetRequest` dans cette combinaison. Distinct du bac à sable qui a servi à la phase 2 (qui n'avait pas ce problème avec Puppeteer). À corriger pour qu'une session sandboxée puisse faire tourner la suite e2e existante.
+
 ## Phase 4 : moteur B
 
 - [ ] Inset par défaut : 56 px (Chrome, Opera), 41 px (Edge).

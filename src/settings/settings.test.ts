@@ -141,4 +141,14 @@ describe("chunked storage", () => {
     const area = memoryArea({ [`${SETTINGS_PREFIX}.meta`]: { chunks: 2 }, [`${SETTINGS_PREFIX}.0`]: "{" });
     expect((await readSettings(area)).settings).toEqual(DEFAULT_SETTINGS);
   });
+
+  it("keeps a freshly-added site rule with an empty pattern (regression: the options page adds one, then the user types into it)", async () => {
+    // A rule the options page just pushed, before the user has typed a pattern into it.
+    const withDraftRule = { ...DEFAULT_SETTINGS, siteRules: [{ pattern: "" }] };
+    const area = memoryArea();
+    await writeSettings(area, withDraftRule);
+    const { settings, resetSections } = await readSettings(area);
+    expect(resetSections).toEqual([]);
+    expect(settings.siteRules).toEqual([{ pattern: "" }]);
+  });
 });
