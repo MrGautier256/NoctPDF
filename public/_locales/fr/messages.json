@@ -32,6 +32,9 @@
   "openOptions": {
     "message": "Options"
   },
+  "popupQuickTheme": {
+    "message": "Thème rapide"
+  },
   "section_interception": {
     "message": "Interception"
   },
