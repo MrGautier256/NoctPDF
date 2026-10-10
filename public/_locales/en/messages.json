@@ -32,6 +32,9 @@
   "openOptions": {
     "message": "Options"
   },
+  "popupQuickTheme": {
+    "message": "Quick theme"
+  },
   "interception_httpPdfs": {
     "message": "Open web PDFs in the enhanced reader"
   },
