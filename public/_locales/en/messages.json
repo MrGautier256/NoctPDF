@@ -32,12 +32,6 @@
   "openOptions": {
     "message": "Options"
   },
-  "optionsProvisional": {
-    "message": "Provisional page: the complete options arrive in a later version."
-  },
-  "sectionInterception": {
-    "message": "Interception"
-  },
   "interception_httpPdfs": {
     "message": "Open web PDFs in the enhanced reader"
   },
@@ -49,9 +43,6 @@
   },
   "interception_respectAttachmentDownloads": {
     "message": "Download PDFs that the site sends as attachments"
-  },
-  "sectionDiagnostics": {
-    "message": "Diagnostics"
   },
   "diagExtension": {
     "message": "Extension version"
@@ -85,5 +76,305 @@
   },
   "refresh": {
     "message": "Refresh"
+  },
+  "section_general": {
+    "message": "General"
+  },
+  "section_theme": {
+    "message": "Themes"
+  },
+  "section_images": {
+    "message": "Images"
+  },
+  "section_interface": {
+    "message": "Interface"
+  },
+  "section_native": {
+    "message": "Native reader"
+  },
+  "section_siteRules": {
+    "message": "Site rules"
+  },
+  "section_data": {
+    "message": "Import / Export"
+  },
+  "section_about": {
+    "message": "About and diagnostics"
+  },
+  "generalEnabled": {
+    "message": "NoctPDF enabled"
+  },
+  "generalActivation": {
+    "message": "Activation"
+  },
+  "activation_always": {
+    "message": "Always"
+  },
+  "activation_follow_system": {
+    "message": "Follow system dark mode"
+  },
+  "activation_schedule": {
+    "message": "On a schedule"
+  },
+  "activationFrom": {
+    "message": "Dark from"
+  },
+  "activationTo": {
+    "message": "Light from"
+  },
+  "generalRememberPerDocument": {
+    "message": "Remember the theme, page and zoom per document"
+  },
+  "generalPrintUseTheme": {
+    "message": "Print with the theme's colors (off: original colors)"
+  },
+  "generalPeekKey": {
+    "message": "Peek at the original (hold key)"
+  },
+  "themePresets": {
+    "message": "Presets"
+  },
+  "themeNewPresetName": {
+    "message": "New preset name"
+  },
+  "themeSaveAsPreset": {
+    "message": "Save as preset"
+  },
+  "themeDeletePreset": {
+    "message": "Delete this preset"
+  },
+  "themeColors": {
+    "message": "Colors"
+  },
+  "themeBg": {
+    "message": "Background"
+  },
+  "themeFg": {
+    "message": "Text"
+  },
+  "themeSurround": {
+    "message": "Around the pages"
+  },
+  "themeSelection": {
+    "message": "Text selection"
+  },
+  "themeHideLinkBorders": {
+    "message": "Hide link borders instead of recoloring them"
+  },
+  "themePageShadow": {
+    "message": "Shadow under pages"
+  },
+  "themePageGap": {
+    "message": "Gap between pages"
+  },
+  "themeContrastLabel": {
+    "message": "Text/background contrast:"
+  },
+  "themeContrastLow": {
+    "message": "below the recommended 4.5:1"
+  },
+  "themePreview": {
+    "message": "Live preview"
+  },
+  "themePreviewBody": {
+    "message": "Body text looks like this. The quick brown fox jumps over the lazy dog."
+  },
+  "themePreviewLink": {
+    "message": "A link stays recognizably a link"
+  },
+  "themePreviewWarn": {
+    "message": "Warning text"
+  },
+  "themePreviewOk": {
+    "message": "OK text"
+  },
+  "themePreviewHighlight": {
+    "message": "A highlighted sentence"
+  },
+  "themePreviewCellA": {
+    "message": "green cell"
+  },
+  "themePreviewCellB": {
+    "message": "red cell"
+  },
+  "themePreviewCellC": {
+    "message": "blue cell"
+  },
+  "themePreviewBox": {
+    "message": "White text on a dark box"
+  },
+  "themeImportExport": {
+    "message": "Import / export this theme"
+  },
+  "themeExport": {
+    "message": "Export theme (.json)"
+  },
+  "themeImport": {
+    "message": "Import theme"
+  },
+  "themeImportError": {
+    "message": "That file is not a valid NoctPDF theme."
+  },
+  "tuningTitle": {
+    "message": "Fine-tuning"
+  },
+  "tuningBrightness": {
+    "message": "Brightness"
+  },
+  "tuningContrast": {
+    "message": "Contrast"
+  },
+  "tuningGamma": {
+    "message": "Gamma"
+  },
+  "tuningSaturation": {
+    "message": "Saturation"
+  },
+  "tuningWarmth": {
+    "message": "Warmth"
+  },
+  "tuningMinContrast": {
+    "message": "Minimum text contrast (WCAG)"
+  },
+  "tuningRecolorVectors": {
+    "message": "Recolor vector shapes and lines"
+  },
+  "tuningPreserveSemanticHues": {
+    "message": "Preserve semantic hues (links, warnings...)"
+  },
+  "imagesMode": {
+    "message": "Image mode"
+  },
+  "imagesMode_auto": {
+    "message": "Automatic"
+  },
+  "imagesMode_dim": {
+    "message": "Dim"
+  },
+  "imagesMode_keep": {
+    "message": "Keep unchanged"
+  },
+  "imagesMode_blend": {
+    "message": "Blend into the theme"
+  },
+  "imagesMode_grayscale": {
+    "message": "Grayscale"
+  },
+  "imagesMode_invert": {
+    "message": "Invert"
+  },
+  "imagesDimLevel": {
+    "message": "Dim level"
+  },
+  "imagesScannedPages": {
+    "message": "Scanned pages"
+  },
+  "imagesScannedPages_recolor": {
+    "message": "Recolor like text"
+  },
+  "imagesScannedPages_keep": {
+    "message": "Keep as-is"
+  },
+  "imagesScanThreshold": {
+    "message": "Scan detection threshold"
+  },
+  "uiSkin": {
+    "message": "Reader skin"
+  },
+  "uiSkin_enhanced": {
+    "message": "Enhanced (themed toolbar)"
+  },
+  "uiSkin_stock": {
+    "message": "Stock PDF.js"
+  },
+  "uiColorSource": {
+    "message": "Interface colors"
+  },
+  "uiColorSource_theme": {
+    "message": "Match the page theme"
+  },
+  "uiColorSource_system": {
+    "message": "Follow the system"
+  },
+  "uiColorSource_custom": {
+    "message": "Custom"
+  },
+  "uiCustomSurface": {
+    "message": "Surface"
+  },
+  "uiCustomText": {
+    "message": "Text"
+  },
+  "uiCustomAccent": {
+    "message": "Accent"
+  },
+  "uiDensity": {
+    "message": "Density"
+  },
+  "uiDensity_compact": {
+    "message": "Compact"
+  },
+  "uiDensity_comfortable": {
+    "message": "Comfortable"
+  },
+  "uiAutoHideToolbar": {
+    "message": "Auto-hide the toolbar while reading"
+  },
+  "uiAnimations": {
+    "message": "Animations"
+  },
+  "section_interception": {
+    "message": "Interception"
+  },
+  "nativeNote": {
+    "message": "These settings apply to the native-overlay engine (a layer on Chrome's built-in reader), coming in a later phase."
+  },
+  "nativeStyle": {
+    "message": "Style"
+  },
+  "nativeStyle_smart": {
+    "message": "Smart invert"
+  },
+  "nativeStyle_pure": {
+    "message": "Pure invert"
+  },
+  "nativeStyle_mono": {
+    "message": "Monochrome"
+  },
+  "nativeStyle_warm": {
+    "message": "Warm dark"
+  },
+  "nativeCoverToolbar": {
+    "message": "Also cover the native toolbar"
+  },
+  "siteRulesNote": {
+    "message": "Match a site to use a different engine or theme there (not yet enforced by the background script)."
+  },
+  "siteRulesPattern": {
+    "message": "URL pattern, e.g. *://example.com/*"
+  },
+  "siteRulesEnabled": {
+    "message": "Enabled"
+  },
+  "siteRulesDisabled": {
+    "message": "Disabled"
+  },
+  "siteRulesRemove": {
+    "message": "Remove"
+  },
+  "siteRulesAdd": {
+    "message": "Add a rule"
+  },
+  "dataExport": {
+    "message": "Export all settings (.json)"
+  },
+  "dataImport": {
+    "message": "Import settings"
+  },
+  "dataImportError": {
+    "message": "That file is not valid NoctPDF settings."
+  },
+  "dataImportPartial": {
+    "message": "Imported, but some sections were invalid and fell back to their defaults: $1"
   }
 }

@@ -80,6 +80,13 @@ export const NativeOverlaySchema = v.object({
   coverToolbar: v.boolean(),
 });
 
+export const CustomPresetSchema = v.object({
+  id: v.pipe(v.string(), v.minLength(1)),
+  name: v.pipe(v.string(), v.minLength(1)),
+  theme: v.omit(ThemeSchema, ["presetId"]),
+});
+export type CustomPreset = v.InferOutput<typeof CustomPresetSchema>;
+
 export const SiteRuleSchema = v.object({
   pattern: v.pipe(v.string(), v.minLength(1)),
   engine: v.optional(EngineSchema),
@@ -101,6 +108,8 @@ export const SettingsSchema = v.object({
   print: v.object({ useTheme: v.boolean() }),
   peekKey: v.picklist(["Alt", "Shift", "none"]),
   siteRules: v.array(SiteRuleSchema),
+  /** User-saved themes, in addition to the built-in presets (src/settings/presets.ts). */
+  customPresets: v.array(CustomPresetSchema),
   /** Remember theme, page and zoom per document (key = URL hash or PDF fingerprint). */
   rememberPerDocument: v.boolean(),
 });
