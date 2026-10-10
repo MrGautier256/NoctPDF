@@ -37,3 +37,39 @@
     --highlight-selected-bg-color: rgb(255 140 0 / 0.5);
   }
 }
+
+/*
+ * ui.skin "enhanced": retints PDF.js' own toolbar/sidebar/dialogs instead of
+ * rebuilding them, through the theming hooks viewer.css's :root already
+ * resolves its surface/text colors through (--toolbar-bg-color and friends
+ * fall back to light-dark(...) only when these are unset). ui.colorSource
+ * "system" leaves these alone (src/viewer/layer.ts skips applyUiColors
+ * entirely in that case) so viewerCssTheme can follow the OS instead.
+ */
+:root.noct-ui-enhanced {
+  --toolbar-bg-color: var(--noct-ui-surface);
+  --sidebar-narrow-bg-color: var(--noct-ui-surface);
+  --doorhanger-bg-color: var(--noct-ui-surface);
+  --field-bg-color: var(--noct-ui-surface);
+  --main-color: var(--noct-ui-text);
+  --field-color: var(--noct-ui-text);
+  --toolbar-icon-bg-color: var(--noct-ui-text);
+  --toolbar-icon-hover-bg-color: var(--noct-ui-text);
+  --button-background-color-primary: var(--noct-ui-accent);
+  --button-background-color-primary-hover: var(--noct-ui-accent);
+  --button-background-color-primary-active: var(--noct-ui-accent);
+}
+
+/* ui.animations off: a blanket override rather than touching every transition PDF.js declares. */
+:root.noct-no-animations * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* ui.autoHideToolbar: src/viewer/layer.ts toggles .noct-hidden from scroll direction. */
+#toolbarContainer.noct-autohide {
+  transition: transform 0.15s ease;
+}
+#toolbarContainer.noct-autohide.noct-hidden {
+  transform: translateY(-100%);
+}
