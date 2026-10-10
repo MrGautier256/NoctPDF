@@ -58,6 +58,81 @@ function applyTheme(t: CachedTheme): void {
   else s.removeProperty("--noct-selection");
 }
 
+/**
+ * The "enhanced" skin retints PDF.js' own toolbar/sidebar/dialogs rather
+ * than rebuilding them: viewer.css's :root already resolves its surface and
+ * text colors through indirection variables (e.g. --toolbar-bg-color reads
+ * --body-bg-color-like hooks that fall back to light-dark(...)), so setting
+ * a handful of custom properties retints the whole chrome. "system" leaves
+ * those hooks alone and lets viewerCssTheme follow the OS instead.
+ */
+function applyUiColors(settings: Settings): void {
+  const root = document.documentElement;
+  const enabled = settings.ui.skin === "enhanced" && settings.ui.colorSource !== "system";
+  root.classList.toggle("noct-ui-enhanced", enabled);
+  if (!enabled) return;
+  const colors =
+    settings.ui.colorSource === "custom"
+      ? {
+          surface: settings.ui.customUiColors?.surface ?? "#2b2d31",
+          text: settings.ui.customUiColors?.text ?? "#e6e3dc",
+          accent: settings.ui.customUiColors?.accent ?? "#8ab4f8",
+        }
+      : {
+          surface: settings.theme.surround,
+          text: settings.theme.fg,
+          accent: settings.theme.selectionColor ?? "#8ab4f8",
+        };
+  const s = root.style;
+  s.setProperty("--noct-ui-surface", colors.surface);
+  s.setProperty("--noct-ui-text", colors.text);
+  s.setProperty("--noct-ui-accent", colors.accent);
+}
+
+function applyUiEffects(settings: Settings): void {
+  document.documentElement.classList.toggle("noct-no-animations", !settings.ui.animations);
+}
+
+/**
+ * toolbarDensity and viewerCssTheme are PDF.js' own preferences (0/1/2 and
+ * 0/1/2 respectively); best-effort like enableImageTrackerOnly, since the
+ * options object's availability at the time this first runs was not
+ * re-verified live (docs/backlog.md).
+ */
+function applyPdfjsUiOptions(settings: Settings): void {
+  const opts = window.PDFViewerApplicationOptions;
+  opts?.set("toolbarDensity", settings.ui.density === "compact" ? 1 : 0);
+  if (settings.ui.skin === "enhanced" && settings.ui.colorSource === "system") opts?.set("viewerCssTheme", 0);
+}
+
+/**
+ * Hides #toolbarContainer while scrolling down, shows it again scrolling up
+ * or near the top. Idempotent: called again on every `ui` settings change,
+ * but only ever binds the scroll listener once (the enabled/disabled state
+ * itself is just the "noct-autohide" class, which the CSS and this function
+ * both check, so toggling the setting off and on again needs no rebind).
+ */
+function setupAutoHideToolbar(enabled: boolean): void {
+  const bar = document.getElementById("toolbarContainer");
+  const container = document.getElementById("viewerContainer");
+  if (!bar || !container) return;
+  bar.classList.toggle("noct-autohide", enabled);
+  if (!enabled) bar.classList.remove("noct-hidden");
+  if (bar.dataset.noctAutohideBound) return;
+  bar.dataset.noctAutohideBound = "1";
+  let lastTop = container.scrollTop;
+  container.addEventListener(
+    "scroll",
+    () => {
+      const top = container.scrollTop;
+      if (top > lastTop + 10 && top > 80) bar.classList.add("noct-hidden");
+      else if (top < lastTop - 10 || top < 80) bar.classList.remove("noct-hidden");
+      lastTop = top;
+    },
+    { passive: true },
+  );
+}
+
 function injectStylesheet(): void {
   const link = document.createElement("link");
   link.rel = "stylesheet";
@@ -168,6 +243,8 @@ export function startViewerLayer(): void {
       selectionColor: settings.theme.selectionColor,
     };
     applyTheme(t);
+    applyUiColors(settings);
+    applyUiEffects(settings);
     try {
       localStorage.setItem(THEME_CACHE, JSON.stringify(t));
     } catch {
@@ -189,6 +266,8 @@ export function startViewerLayer(): void {
 
     const app = await whenApp();
     enableImageTrackerOnly();
+    applyPdfjsUiOptions(settings);
+    setupAutoHideToolbar(settings.ui.autoHideToolbar);
 
     const opts = window.PDFViewerApplicationOptions;
     for (const k of ["imagesRightClickMinSize", "viewerCssTheme", "enableDetailCanvas", "enableHWA"]) {
@@ -221,6 +300,7 @@ export function startViewerLayer(): void {
           JSON.stringify(next.theme) !== JSON.stringify(current.theme) ||
           JSON.stringify(next.tuning) !== JSON.stringify(current.tuning);
         const imagesChanged = JSON.stringify(next.images) !== JSON.stringify(current.images);
+        const uiChanged = JSON.stringify(next.ui) !== JSON.stringify(current.ui);
         current = next;
         if (themeChanged) {
           controller?.setTheme(themeFrom(next));
@@ -238,6 +318,12 @@ export function startViewerLayer(): void {
           }
         }
         if (imagesChanged) controller?.setImagesSettings(next.images);
+        if (themeChanged || uiChanged) applyUiColors(next);
+        if (uiChanged) {
+          applyUiEffects(next);
+          applyPdfjsUiOptions(next);
+          setupAutoHideToolbar(next.ui.autoHideToolbar);
+        }
       });
     });
 
