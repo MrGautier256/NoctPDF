@@ -88,7 +88,10 @@ export const CustomPresetSchema = v.object({
 export type CustomPreset = v.InferOutput<typeof CustomPresetSchema>;
 
 export const SiteRuleSchema = v.object({
-  pattern: v.pipe(v.string(), v.minLength(1)),
+  // Not minLength(1): a freshly-added rule starts with an empty pattern while the
+  // user types one in, and an empty pattern simply matches no URL in the
+  // meantime (it is not a security-relevant distinction, just a draft state).
+  pattern: v.string(),
   engine: v.optional(EngineSchema),
   presetId: v.optional(v.string()),
   disabled: v.optional(v.boolean()),

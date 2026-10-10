@@ -221,9 +221,12 @@ legend {
 }
 .slider-row {
   display: grid;
-  grid-template-columns: 80px 1fr;
+  grid-template-columns: auto 1fr;
   align-items: center;
   gap: 8px;
+}
+.slider-row span {
+  white-space: nowrap;
 }
 .image-mode {
   text-align: left;
