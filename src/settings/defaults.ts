@@ -51,5 +51,6 @@ export const DEFAULT_SETTINGS: Settings = {
   print: { useTheme: false },
   peekKey: "Alt",
   siteRules: [],
+  customPresets: [],
   rememberPerDocument: true,
 };
