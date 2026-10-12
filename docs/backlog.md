@@ -43,8 +43,16 @@ Points relevés à la revue de la phase 0, avec la phase où ils seront traités
 
 ## Phase 4 : moteur B
 
-- [ ] Inset par défaut : 56 px (Chrome, Opera), 41 px (Edge).
-- [ ] Piste : garder sombre le fond autour des pages (`rgb(40, 40, 40)`) avec un filtre SVG non séparable.
+- [x] Inset par défaut : 56 px (Chrome, Opera), 41 px (Edge), détection Edge via `navigator.userAgentData.brands`, `coverToolbar` pour le forcer à 0. **Fait** : `src/content/native-overlay-logic.ts` (`resolveToolbarInset`), testé.
+- [x] Couche unique `backdrop-filter: url(#svg)` (invert + hueRotate(180) + tables par canal), insérée une fois au `DOMContentLoaded` plus un `MutationObserver` de secours (pas de ré-insertion par timers multiples, cf. phase 0). **Fait** : `src/content/native-overlay.ts`.
+- [x] Quatre styles : `smart` (suit le thème choisi pour le moteur A), `pure` (noir/blanc purs), `warm` (palette sépia fixe), `mono` (désature avant le mapping). **Fait**, testé (`native-overlay-logic.test.ts`).
+- [x] Réactivité aux changements de réglages (`storage.onChanged`) sans recharger la page, activation uniquement si `engine === "native-overlay"`. **Fait**, vérifié avec un vrai navigateur (voir ci-dessous).
+- [x] Impression : la couche est cachée en CSS (`@media print`) plutôt que par des écouteurs `beforeprint`/`afterprint`, plus simple et robuste (fonctionne même si l'impression vient du moteur PDF natif, hors de notre portée JS).
+- [x] Communication honnête des limites : bandeau discret (coin bas-droit) listant les limites (images inversées, fond alentour plus clair) avec un bouton vers le moteur A (`noct:switchToEnhanced`, nouveau message). **Fait**, vérifié avec un vrai navigateur.
+- [x] Vérifié avec un vrai Chromium (pas seulement typecheck/lint) : bundle compilé chargé dans une page servie en HTTP avec `Content-Type: application/pdf`, `chrome.*` simulé. Confirme le montage initial, la bascule de style en direct, l'envoi du message au clic, et le démontage complet au changement de moteur.
+- [ ] Détection des `<embed>`/`<object>` plein cadre insérés **après** le chargement initial de la page (cas rare) : seule la détection au chargement et au changement de réglages est couverte, pas de détection continue comme pour le moteur A (`animationstart`). À ajouter si ça se révèle gênant en usage réel.
+- [ ] Le bandeau de limites, une fois fermé, ne réapparaît plus pour la durée de vie de la page mais n'est pas mémorisé entre pages/onglets (pas de `sessionStorage`) : choix délibéré pour rester simple, à revoir si jugé répétitif à l'usage.
+- [ ] Piste non retenue : garder sombre le fond autour des pages avec un filtre SVG non séparable — hors de portée du moteur B qui ne contrôle que la page web autour du plugin PDF natif, pas son chrome interne.
 
 ## Phase 1 : fait
 

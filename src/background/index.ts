@@ -98,6 +98,12 @@ async function handle(message: Message, sender: Browser.runtime.MessageSender): 
         .set({ [LAST_INTERCEPTION]: { url: message.pdfUrl, reason: message.via, at: Date.now() } });
       return true;
     }
+    case "noct:switchToEnhanced": {
+      const tabId = sender.tab?.id;
+      if (tabId === undefined) return false;
+      await openEnhanced(tabId, message.url);
+      return true satisfies Replies["noct:switchToEnhanced"];
+    }
     case "noct:getDiagnostics":
       return diagnostics();
   }

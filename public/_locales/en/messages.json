@@ -29,6 +29,12 @@
   "openEnhanced": {
     "message": "Open in the enhanced reader"
   },
+  "nativeOverlayLimitations": {
+    "message": "Overlay mode: images are inverted and the surrounding page is lighter. Switch to the enhanced reader for full image support."
+  },
+  "nativeOverlayDismiss": {
+    "message": "Dismiss"
+  },
   "openOptions": {
     "message": "Options"
   },

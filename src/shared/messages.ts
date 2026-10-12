@@ -30,6 +30,8 @@ export type Message =
   | { type: "noct:shouldTakeOverPdfDocument" }
   /** Viewer layer: a PDF was opened, and how it reached the viewer. */
   | { type: "noct:viewerOpened"; pdfUrl: string; via: string }
+  /** Native-overlay content script: the user asked to switch this tab to the enhanced reader. */
+  | { type: "noct:switchToEnhanced"; url: string }
   | { type: "noct:getDiagnostics" };
 
 export interface Replies {
@@ -39,6 +41,7 @@ export interface Replies {
   "noct:nativePdfShown": true;
   "noct:shouldTakeOverPdfDocument": boolean;
   "noct:viewerOpened": true;
+  "noct:switchToEnhanced": true;
   "noct:getDiagnostics": Diagnostics;
 }
 

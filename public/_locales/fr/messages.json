@@ -29,6 +29,12 @@
   "openEnhanced": {
     "message": "Ouvrir dans le lecteur amélioré"
   },
+  "nativeOverlayLimitations": {
+    "message": "Mode superposition : les images sont inversées et la page alentour reste plus claire. Passez au lecteur amélioré pour un rendu complet des images."
+  },
+  "nativeOverlayDismiss": {
+    "message": "Ignorer"
+  },
   "openOptions": {
     "message": "Options"
   },
