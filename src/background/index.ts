@@ -2,6 +2,9 @@ import { browser, dnr, extUrl, isAllowedFileSchemeAccess, storage, viewerUrl, ty
 import { isMessage, type Diagnostics, type Message, type Replies, type TabState } from "../shared/messages";
 import { pdfUrlFromViewerUrl } from "../shared/viewer-url";
 import type { Settings } from "../settings/schema";
+import { resolveEffectiveSettings } from "../settings/site-rules";
+import { registerCommands } from "./commands";
+import { registerContextMenu } from "./context-menu";
 import { buildInterceptionRules } from "./dnr-rules";
 import { registerFileSchemeListener } from "./file-scheme";
 import { registerReadableUrlRouter } from "./router";
@@ -52,6 +55,7 @@ async function diagnostics(): Promise<Diagnostics> {
     fileSchemeAccess: await isAllowedFileSchemeAccess(),
     dynamicRuleCount: (await dnr.getDynamicRules()).length,
     sessionRuleCount: (await dnr.getSessionRules()).length,
+    commands: (await browser.commands.getAll()).map(c => ({ name: c.name ?? "", shortcut: c.shortcut ?? "" })),
     pdfjs,
     lastInterception:
       ((await storage.session().get([LAST_INTERCEPTION]))[LAST_INTERCEPTION] as Diagnostics["lastInterception"]) ??
@@ -77,7 +81,7 @@ async function handle(message: Message, sender: Browser.runtime.MessageSender): 
       const tabId = sender.tab?.id;
       const url = sender.url; // the frame's document, not the tab
       if (tabId === undefined || !url) return false;
-      const s = await getSettings();
+      const s = resolveEffectiveSettings(await getSettings(), url);
       const scheme = url.startsWith("file:") ? s.interception.localFiles : s.interception.httpPdfs;
       if (!s.enabled || s.engine !== "enhanced" || !scheme) return false;
       if (sender.frameId && !s.interception.embeddedPdfs) return false;
@@ -114,9 +118,14 @@ export function startBackground(): void {
   registerReadableUrlRouter();
   registerRefererListeners();
   registerFileSchemeListener();
+  registerCommands();
+  registerContextMenu();
   onSettingsChanged(s => void applySettings(s));
 
-  browser.runtime.onInstalled.addListener(() => void getSettings().then(applySettings));
+  browser.runtime.onInstalled.addListener(details => {
+    void getSettings().then(applySettings);
+    if (details.reason === "install") void browser.runtime.openOptionsPage();
+  });
   browser.runtime.onStartup.addListener(() => void getSettings().then(applySettings));
 
   browser.tabs.onRemoved.addListener(tabId => void forgetTab(tabId));

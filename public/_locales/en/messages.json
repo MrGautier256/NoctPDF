@@ -5,6 +5,12 @@
   "extDescription": {
     "message": "A true dark mode for PDFs: themed pages, images preserved, readable colors, and a customizable PDF reader."
   },
+  "commandToggleEnabled": {
+    "message": "Toggle NoctPDF on/off"
+  },
+  "commandCycleTheme": {
+    "message": "Switch to the next theme"
+  },
   "stateOn": {
     "message": "On"
   },
@@ -76,6 +82,12 @@
   },
   "diagLastPdf": {
     "message": "Last PDF opened"
+  },
+  "diagShortcuts": {
+    "message": "Keyboard shortcuts"
+  },
+  "diagShortcutUnset": {
+    "message": "not set"
   },
   "none": {
     "message": "None"
@@ -357,10 +369,16 @@
     "message": "Also cover the native toolbar"
   },
   "siteRulesNote": {
-    "message": "Match a site to use a different engine or theme there (not yet enforced by the background script)."
+    "message": "Match a site to use a different engine or theme there."
   },
   "siteRulesPattern": {
     "message": "URL pattern, e.g. *://example.com/*"
+  },
+  "siteRulesEngineNone": {
+    "message": "Use the global engine"
+  },
+  "siteRulesPresetNone": {
+    "message": "Use the global theme"
   },
   "siteRulesEnabled": {
     "message": "Enabled"

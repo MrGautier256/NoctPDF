@@ -96,6 +96,7 @@ export const SiteRuleSchema = v.object({
   presetId: v.optional(v.string()),
   disabled: v.optional(v.boolean()),
 });
+export type SiteRule = v.InferOutput<typeof SiteRuleSchema>;
 
 export const SettingsSchema = v.object({
   version: v.literal(SETTINGS_VERSION),

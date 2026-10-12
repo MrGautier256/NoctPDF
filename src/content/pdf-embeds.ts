@@ -4,6 +4,8 @@
 // Ported from mozilla/pdf.js extensions/chromium/contentscript.js
 // (Apache License 2.0).
 import { send, storage, viewerUrl } from "../platform";
+import type { Settings } from "../settings/schema";
+import { resolveEffectiveSettings } from "../settings/site-rules";
 import { readSettings } from "../settings/storage";
 
 export const DETECTION_ANIMATION = "noctpdf-detected-object-or-embed";
@@ -14,12 +16,16 @@ function viewerUrlForEmbed(path: string): string {
   return `${viewerUrl()}?file=${encodeURIComponent(absolute)}${fragment}`;
 }
 
-let embedsAllowed: Promise<boolean> | null = null;
-function areEmbedsAllowed(): Promise<boolean> {
-  embedsAllowed ??= readSettings(storage.sync()).then(
-    ({ settings: s }) => s.enabled && s.engine === "enhanced" && s.interception.embeddedPdfs,
-  );
-  return embedsAllowed;
+let settingsPromise: Promise<Settings> | null = null;
+function currentSettings(): Promise<Settings> {
+  settingsPromise ??= readSettings(storage.sync()).then(({ settings }) => settings);
+  return settingsPromise;
+}
+
+/** Resolved against `url` so a site rule can turn embeds on/off per site, not just globally. */
+async function areEmbedsAllowedFor(url: string): Promise<boolean> {
+  const s = resolveEffectiveSettings(await currentSettings(), url);
+  return s.enabled && s.engine === "enhanced" && s.interception.embeddedPdfs;
 }
 
 const seen = new WeakSet<Element>();
@@ -54,7 +60,7 @@ function watchObjectOrEmbed(elem: HTMLObjectElement | HTMLEmbedElement): void {
       updating = false;
     }
   };
-  void areEmbedsAllowed().then(allowed => {
+  void areEmbedsAllowedFor(path).then(allowed => {
     if (!allowed) return;
     update();
     // Pages may change src/data later.

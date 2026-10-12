@@ -33,8 +33,20 @@ export default defineConfig({
       "webNavigation",
       // Read-only: remember the Referer of PDF requests and spot POST responses.
       "webRequest",
+      // Right-click menu on PDF links.
+      "contextMenus",
     ],
     host_permissions: ["<all_urls>"],
+    commands: {
+      "toggle-enabled": {
+        suggested_key: { default: "Ctrl+Shift+D", mac: "Command+Shift+D" },
+        description: "__MSG_commandToggleEnabled__",
+      },
+      "cycle-theme": {
+        suggested_key: { default: "Ctrl+Shift+T", mac: "Command+Shift+T" },
+        description: "__MSG_commandCycleTheme__",
+      },
+    },
     // The viewer runs WebAssembly decoders (JPEG 2000, JBIG2, ICC profiles).
     content_security_policy: {
       extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",

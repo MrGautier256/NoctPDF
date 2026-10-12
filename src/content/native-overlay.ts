@@ -7,6 +7,7 @@
  */
 import { browser, send, storage } from "../platform";
 import type { Settings } from "../settings/schema";
+import { resolveEffectiveSettings } from "../settings/site-rules";
 import { isSettingsChange, readSettings } from "../settings/storage";
 import {
   buildFilterMarkup,
@@ -188,7 +189,8 @@ export function startNativeOverlay(): void {
 
   function apply(): void {
     if (!settings) return;
-    if (shouldActivateOverlay(settings)) overlay.render(settings);
+    const effective = resolveEffectiveSettings(settings, document.URL);
+    if (shouldActivateOverlay(effective)) overlay.render(effective);
     else overlay.remove();
   }
 

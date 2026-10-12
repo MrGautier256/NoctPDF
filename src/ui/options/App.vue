@@ -7,6 +7,7 @@ import type { Settings } from "../../settings/schema";
 import { t } from "../shared/i18n";
 import { send } from "../shared/messaging";
 import { useSettings } from "../shared/use-settings";
+import { THEME_PRESETS } from "../../settings/presets";
 import ThemeEditor from "./ThemeEditor.vue";
 
 const { settings, save } = useSettings();
@@ -40,6 +41,11 @@ const skins: Settings["ui"]["skin"][] = ["enhanced", "stock"];
 const colorSources: Settings["ui"]["colorSource"][] = ["theme", "system", "custom"];
 const densities: Settings["ui"]["density"][] = ["compact", "comfortable"];
 const nativeStyles: Settings["nativeOverlay"]["style"][] = ["smart", "pure", "mono", "warm"];
+const engines: Settings["engine"][] = ["enhanced", "native-overlay", "off"];
+const COMMAND_LABELS: Record<string, string> = {
+  "toggle-enabled": "commandToggleEnabled",
+  "cycle-theme": "commandCycleTheme",
+};
 const peekKeys: Settings["peekKey"][] = ["Alt", "Shift", "none"];
 
 function setDarkFrom(e: Event): void {
@@ -139,7 +145,7 @@ const manifest = computed(() => browser.runtime.getManifest());
         </label>
         <fieldset :disabled="!settings.enabled">
           <legend>{{ t("engineLabel") }}</legend>
-          <label v-for="e in ['enhanced', 'native-overlay', 'off'] as const" :key="e" class="choice">
+          <label v-for="e in engines" :key="e" class="choice">
             <input v-model="settings.engine" type="radio" name="engine" :value="e" @change="save" />
             {{ t(`engine_${e.replace("-", "_")}`) }}
           </label>
@@ -385,6 +391,15 @@ const manifest = computed(() => browser.runtime.getManifest());
         <p class="note">{{ t("siteRulesNote") }}</p>
         <div v-for="(rule, i) in settings.siteRules" :key="i" class="site-rule">
           <input v-model="rule.pattern" type="text" :placeholder="t('siteRulesPattern')" @change="save" />
+          <select v-model="rule.engine" @change="save">
+            <option :value="undefined">{{ t("siteRulesEngineNone") }}</option>
+            <option v-for="e in engines" :key="e" :value="e">{{ t(`engine_${e.replace("-", "_")}`) }}</option>
+          </select>
+          <select v-model="rule.presetId" @change="save">
+            <option :value="undefined">{{ t("siteRulesPresetNone") }}</option>
+            <option v-for="p in THEME_PRESETS" :key="p.id" :value="p.id">{{ p.name }}</option>
+            <option v-for="p in settings.customPresets" :key="p.id" :value="p.id">{{ p.name }}</option>
+          </select>
           <select v-model="rule.disabled" @change="save">
             <option :value="undefined">{{ t("siteRulesEnabled") }}</option>
             <option :value="true">{{ t("siteRulesDisabled") }}</option>
@@ -428,6 +443,13 @@ const manifest = computed(() => browser.runtime.getManifest());
               <br />{{ diag.lastInterception.reason }}
             </template>
             <template v-else>{{ t("none") }}</template>
+          </dd>
+          <dt>{{ t("diagShortcuts") }}</dt>
+          <dd>
+            <template v-for="c in diag.commands" :key="c.name">
+              {{ t(COMMAND_LABELS[c.name] ?? c.name) }}: <code>{{ c.shortcut || t("diagShortcutUnset") }}</code>
+              <br />
+            </template>
           </dd>
         </dl>
         <button type="button" @click="refresh">{{ t("refresh") }}</button>

@@ -87,6 +87,55 @@ describe("buildInterceptionRules", () => {
   });
 });
 
+describe("site rule overrides", () => {
+  it("excludes a site from the global enhanced redirect", () => {
+    const settings: Settings = {
+      ...DEFAULT_SETTINGS,
+      siteRules: [{ pattern: "https://a.org/*", engine: "native-overlay" }],
+    };
+    const rules = buildInterceptionRules(settings, VIEWER);
+    const override = allows(rules).find(r => r.condition.regexFilter === "^https://a\\.org/.*$");
+    expect(override).toBeDefined();
+    expect(override!.priority).toBe(Math.max(...rules.map(r => r.priority)));
+  });
+
+  it("forces the enhanced reader on a site despite the global engine", () => {
+    const settings: Settings = {
+      ...DEFAULT_SETTINGS,
+      engine: "off",
+      siteRules: [{ pattern: "https://a.org/*", engine: "enhanced" }],
+    };
+    const rules = buildInterceptionRules(settings, VIEWER);
+    const override = redirects(rules).find(r => r.condition.regexFilter === "^https://a\\.org/.*$");
+    expect(override).toBeDefined();
+    expect(override!.condition.responseHeaders).toEqual([
+      { header: "content-type", values: ["application/pdf", "application/pdf;*"] },
+    ]);
+  });
+
+  it("ignores a disabled rule or one matching the global engine", () => {
+    const disabled: Settings = {
+      ...DEFAULT_SETTINGS,
+      siteRules: [{ pattern: "https://a.org/*", engine: "native-overlay", disabled: true }],
+    };
+    expect(buildInterceptionRules(disabled, VIEWER).some(r => r.condition.regexFilter?.includes("a\\.org"))).toBe(
+      false,
+    );
+
+    const noop: Settings = { ...DEFAULT_SETTINGS, siteRules: [{ pattern: "https://a.org/*", engine: "enhanced" }] };
+    expect(buildInterceptionRules(noop, VIEWER).some(r => r.condition.regexFilter?.includes("a\\.org"))).toBe(false);
+  });
+
+  it("still emits nothing when the extension is off entirely, even with a forcing site rule", () => {
+    const settings: Settings = {
+      ...DEFAULT_SETTINGS,
+      enabled: false,
+      siteRules: [{ pattern: "https://a.org/*", engine: "enhanced" }],
+    };
+    expect(buildInterceptionRules(settings, VIEWER)).toEqual([]);
+  });
+});
+
 describe("nativeAllowRule", () => {
   it("targets one tab and the exact URL, without fragment", () => {
     expect(nativeAllowRule(7, 42, "https://a.org/x.pdf#page=3")).toEqual({

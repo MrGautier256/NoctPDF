@@ -35,7 +35,7 @@ Points relevés à la revue de la phase 0, avec la phase où ils seront traités
 
 - [x] Préréglages de thème, éditeur avec aperçu en direct et import/export, page d'options complète, habillage « enhanced » de la barre d'outils PDF.js. Détails et décisions : `docs/phase3-findings.md`.
 - [x] Bug trouvé en vérifiant réellement l'UI dans un navigateur (pas seulement le typecheck) : ajouter une règle par site l'effaçait aussitôt (schéma trop strict sur un motif vide). Corrigé, testé (`settings.test.ts`).
-- [ ] Choix du moteur par site depuis le popup : les règles par site existent mais rien ne les résout contre l'onglet actif.
+- [x] Choix du moteur par site : résolu, voir phase 5.
 - [ ] « Réappliquer » (popup, moteur B) : sans objet avant la phase 4.
 - [ ] Mode comparaison exposé dans l'interface (popup ou options) : le shader le supporte déjà (`ProcessOptions.split`).
 - [ ] Miniatures qui restent à jour pendant un changement de thème en direct (lacune phase 2, toujours ouverte).
@@ -53,6 +53,21 @@ Points relevés à la revue de la phase 0, avec la phase où ils seront traités
 - [ ] Détection des `<embed>`/`<object>` plein cadre insérés **après** le chargement initial de la page (cas rare) : seule la détection au chargement et au changement de réglages est couverte, pas de détection continue comme pour le moteur A (`animationstart`). À ajouter si ça se révèle gênant en usage réel.
 - [ ] Le bandeau de limites, une fois fermé, ne réapparaît plus pour la durée de vie de la page mais n'est pas mémorisé entre pages/onglets (pas de `sessionStorage`) : choix délibéré pour rester simple, à revoir si jugé répétitif à l'usage.
 - [ ] Piste non retenue : garder sombre le fond autour des pages avec un filtre SVG non séparable — hors de portée du moteur B qui ne contrôle que la page web autour du plugin PDF natif, pas son chrome interne.
+
+## Phase 5 : finitions
+
+- [x] Résolution des règles par site contre le document courant : `src/settings/site-rules.ts` (`resolveSiteRule`/`resolveEffectiveSettings`, motifs façon Chrome `*://*.example.com/*`, testé). Branché partout où le moteur/thème global était lu directement :
+  - `background/index.ts` (`noct:shouldTakeOverPdfDocument`, PDF non interceptées par DNR) ;
+  - `content/pdf-embeds.ts` (`<embed>`/`<object>`), résolu par l'URL de l'embed et non plus globalement ;
+  - `content/native-overlay.ts` (moteur B), résolu par `document.URL` ;
+  - `background/dnr-rules.ts` : règles DNR dédiées, plus prioritaires que tout le reste — exclusion (allow) quand le site veut un autre moteur que le global « enhanced », redirection forcée (uniquement sur le `content-type: application/pdf` standard, pas les heuristiques octet-stream/extension/Content-Disposition ni `file://`) quand le site veut « enhanced » alors que le global ne l'est pas. Testé (`dnr-rules.test.ts`).
+  - Page d'options : sélecteurs moteur/thème par règle ajoutés (`App.vue`), vérifiés avec un vrai navigateur (le JSON stocké contient bien le bon override après un enregistrement).
+- [x] Raccourcis clavier (`commands`) : `toggle-enabled` (Ctrl/Cmd+Shift+D) et `cycle-theme` (Ctrl/Cmd+Shift+T). **Fait** : `src/background/commands.ts`, déclarés dans `wxt.config.ts`.
+- [x] Menu contextuel sur les liens PDF : « Ouvrir dans le lecteur amélioré » / « Ouvrir dans le lecteur intégré », sans d'abord naviguer puis basculer depuis le popup. **Fait** : `src/background/context-menu.ts`, permission `contextMenus` ajoutée.
+- [x] Onboarding minimal : la page d'options s'ouvre automatiquement à la première installation (`runtime.onInstalled`, `reason === "install"`), sur la section thème (vue par défaut déjà existante). Pas de parcours dédié construit en plus : la page d'options existante suffit comme première prise en main.
+- [x] Ajouts à la page de diagnostics : raccourcis clavier effectivement assignés par Chrome (`chrome.commands.getAll()`), utile car Chrome peut laisser une combinaison non assignée en cas de conflit. **Fait** et vérifié avec un vrai navigateur.
+- [ ] Le menu contextuel ne vérifie le lien que par motif d'URL (`*.pdf*`) côté navigateur, pas par `content-type` réel (impossible à connaître avant de cliquer) : un lien qui se termine en `.pdf` mais n'en est pas un échouera comme n'importe quel lien mal formé, un lien PDF sans extension `.pdf` dans l'URL n'aura pas l'entrée de menu.
+- [ ] Le motif de règle par site (`*://*.example.com/*`) couvre le sous-ensemble courant des motifs Chrome (schéma, hôte avec joker, port explicite, chemin avec jokers) mais pas le mot-clé spécial `<all_urls>`.
 
 ## Phase 1 : fait
 

@@ -5,6 +5,7 @@
 // settings, and Content-Disposition: attachment can be honored in the main
 // frame too (respectAttachmentDownloads).
 import type { Settings } from "../settings/schema";
+import { matchPatternToRegexSource } from "../settings/site-rules";
 
 type ResourceType = "main_frame" | "sub_frame";
 
@@ -40,14 +41,51 @@ export function redirectAction(viewerUrl: string): DnrRule["action"] {
 
 type RuleBody = Omit<DnrRule, "id" | "priority">;
 
+/**
+ * Site rules whose engine differs from the global one steer DNR for that
+ * site specifically, highest priority (checked before anything else):
+ * - globally enhanced, rule wants another engine: an allow rule excludes the
+ *   site from the redirect.
+ * - globally not enhanced, rule wants "enhanced": a redirect rule forces it,
+ *   covering only the standard `content-type: application/pdf` response (not
+ *   the octet-stream/.pdf-extension or content-disposition-filename
+ *   heuristics the default httpPdfs rules add below, nor file://).
+ */
+function siteRuleOverrides(settings: Settings, viewerUrl: string, frames: ResourceType[]): RuleBody[] {
+  const globallyEnhanced = settings.enabled && settings.engine === "enhanced";
+  const rules: RuleBody[] = [];
+  for (const rule of settings.siteRules) {
+    if (rule.disabled || !rule.engine || rule.engine === settings.engine) continue;
+    const regexFilter = matchPatternToRegexSource(rule.pattern);
+    if (!regexFilter) continue;
+    if (globallyEnhanced) {
+      rules.push({ action: { type: "allow" }, condition: { regexFilter, resourceTypes: frames } });
+    } else if (rule.engine === "enhanced") {
+      rules.push({
+        action: redirectAction(viewerUrl),
+        condition: {
+          regexFilter,
+          resourceTypes: frames,
+          excludedRequestMethods: ["post"],
+          responseHeaders: [{ header: "content-type", values: PDF_TYPES }],
+        },
+      });
+    }
+  }
+  return rules;
+}
+
 export function buildInterceptionRules(settings: Settings, viewerUrl: string): DnrRule[] {
-  if (!settings.enabled || settings.engine !== "enhanced") return [];
+  if (!settings.enabled) return [];
+  const frames: ResourceType[] = settings.interception.embeddedPdfs ? ["main_frame", "sub_frame"] : ["main_frame"];
+  // Highest priority first; ids and priorities are assigned at the end.
+  const rules: RuleBody[] = siteRuleOverrides(settings, viewerUrl, frames);
+
+  if (settings.engine !== "enhanced") return rules.map((r, i) => ({ ...r, id: i + 1, priority: rules.length - i }));
+
   const { httpPdfs, localFiles, embeddedPdfs, respectAttachmentDownloads } = settings.interception;
-  const frames: ResourceType[] = embeddedPdfs ? ["main_frame", "sub_frame"] : ["main_frame"];
   const allow = { type: "allow" } as const;
   const redirect = redirectAction(viewerUrl);
-  // Highest priority first; ids and priorities are assigned at the end.
-  const rules: RuleBody[] = [];
 
   for (const hatch of ESCAPE_HATCHES) {
     rules.push({ action: allow, condition: { urlFilter: hatch, resourceTypes: frames } });

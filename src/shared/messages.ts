@@ -16,6 +16,7 @@ export interface Diagnostics {
   fileSchemeAccess: boolean;
   dynamicRuleCount: number;
   sessionRuleCount: number;
+  commands: { name: string; shortcut: string }[];
   pdfjs: { tag: string; version: string; commit: string } | null;
   lastInterception: { url: string; reason: string; at: number } | null;
 }

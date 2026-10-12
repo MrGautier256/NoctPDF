@@ -5,6 +5,12 @@
   "extDescription": {
     "message": "Un vrai mode sombre pour les PDF : pages thémées, images préservées, couleurs lisibles et lecteur PDF personnalisable."
   },
+  "commandToggleEnabled": {
+    "message": "Activer/désactiver NoctPDF"
+  },
+  "commandCycleTheme": {
+    "message": "Passer au thème suivant"
+  },
   "stateOn": {
     "message": "Activé"
   },
@@ -79,6 +85,12 @@
   },
   "diagLastPdf": {
     "message": "Dernier PDF ouvert"
+  },
+  "diagShortcuts": {
+    "message": "Raccourcis clavier"
+  },
+  "diagShortcutUnset": {
+    "message": "non défini"
   },
   "none": {
     "message": "Aucun"
@@ -357,10 +369,16 @@
     "message": "Couvrir aussi la barre d'outils native"
   },
   "siteRulesNote": {
-    "message": "Faire correspondre un site pour y utiliser un autre moteur ou thème (pas encore appliqué par le script d'arrière-plan)."
+    "message": "Faire correspondre un site pour y utiliser un autre moteur ou thème."
   },
   "siteRulesPattern": {
     "message": "Motif d'URL, ex. *://example.com/*"
+  },
+  "siteRulesEngineNone": {
+    "message": "Utiliser le moteur global"
+  },
+  "siteRulesPresetNone": {
+    "message": "Utiliser le thème global"
   },
   "siteRulesEnabled": {
     "message": "Activée"
