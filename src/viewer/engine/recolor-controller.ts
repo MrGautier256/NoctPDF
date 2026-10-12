@@ -11,6 +11,7 @@ import { histogramFromRgba, percentileLevels, type LevelsStretch } from "../../c
 import { composeTuning, type Tuning } from "../../color/tuning";
 import type { Settings } from "../../settings/schema";
 import type { Affine } from "./affine";
+import { CpuRecolorer } from "./cpu-recolorer";
 import { classifyImageSample, isScannedPage, staticImageMode } from "./image-policy";
 import { rectBounds, rectsFromTrackedCoordinates, type DetailViewArea } from "./image-rects";
 import { recolorBorderColor, rewriteBorderSvgStroke } from "./link-borders";
@@ -19,11 +20,33 @@ import {
   shouldUseOperatorListFallback,
   type OperatorList,
 } from "./operator-list-fallback";
-import { ShaderRecolorer } from "./shader-recolorer";
+import { ShaderRecolorer, type ProcessOptions } from "./shader-recolorer";
 import type { ImageRect, ImageRectMode } from "./types";
 
 const SCAN_SAMPLE_SIZE = 64;
 const CLASSIFY_SAMPLE_SIZE = 48;
+
+/**
+ * Implemented by ShaderRecolorer (sync, GPU) and CpuRecolorer (async, Worker
+ * fallback for when WebGL2 is unavailable — see createRecolorer() below).
+ */
+interface PageRecolorer {
+  setLut(lut: { n: number; data: Uint8Array }): void;
+  process(
+    source: OffscreenCanvas,
+    rects: readonly ImageRect[],
+    options?: ProcessOptions,
+  ): OffscreenCanvas | Promise<OffscreenCanvas>;
+}
+
+function createRecolorer(): PageRecolorer {
+  try {
+    return new ShaderRecolorer();
+  } catch (err) {
+    console.warn("NoctPDF: WebGL2 unavailable, recoloring on the CPU instead (slower)", err);
+    return new CpuRecolorer();
+  }
+}
 
 export interface PdfPageProxyLike {
   getTextContent(): Promise<{ items: Array<{ str?: string }> }>;
@@ -73,7 +96,7 @@ interface BorderOriginal {
 }
 
 export class RecolorController {
-  private readonly recolorer = new ShaderRecolorer();
+  private readonly recolorer: PageRecolorer = createRecolorer();
   private remap: Remap;
   private bg: readonly [number, number, number] = [0, 0, 0];
   private readonly originals = new Map<string, OriginalEntry>();
@@ -102,11 +125,11 @@ export class RecolorController {
   }
 
   /** Call when the theme or tuning changes: rebuilds the LUT and reprocesses every cached, still-visible page. */
-  setTheme(theme: RecolorTheme): void {
+  async setTheme(theme: RecolorTheme): Promise<void> {
     this.remap = this.buildRemap(theme);
     this.hideLinkBorders = theme.hideLinkBorders;
     this.recolorer.setLut(buildLut(this.remap, 17));
-    this.reprocessAll();
+    await this.reprocessAll();
     this.resweepAnnotationBorders();
   }
 
@@ -154,14 +177,14 @@ export class RecolorController {
     }
   }
 
-  setImagesSettings(images: Settings["images"]): void {
+  async setImagesSettings(images: Settings["images"]): Promise<void> {
     this.imagesSettings = images;
     this.classifyCache.clear();
-    this.reprocessAll();
+    await this.reprocessAll();
   }
 
   /** Called on every `pagerendered` event (both full-page and detail-view renders). */
-  onPageRendered(evt: PageRenderedEvent): void {
+  async onPageRendered(evt: PageRenderedEvent): Promise<void> {
     const canvas = evt.source.canvas;
     if (!canvas?.width) return;
     const pageView = evt.isDetailView ? (evt.source.pageView ?? evt.source) : evt.source;
@@ -178,7 +201,11 @@ export class RecolorController {
 
     const { rects, stretches } = this.classifyRects(rawRects, coords, evt.pageNumber, copy, !!evt.isDetailView);
 
-    const out = this.recolorer.process(copy, rects, { dim: this.imagesSettings.dimLevel, bg: this.bg, stretches });
+    const out = await this.recolorer.process(copy, rects, {
+      dim: this.imagesSettings.dimLevel,
+      bg: this.bg,
+      stretches,
+    });
     canvas.getContext("2d")!.drawImage(out, 0, 0);
     canvas.dataset.noct = "1";
 
@@ -277,7 +304,7 @@ export class RecolorController {
       pageNumber,
       rects.flatMap(r => r.p),
     );
-    this.reprocessPage(pageNumber);
+    void this.reprocessPage(pageNumber);
   }
 
   /** The flat, tracker-shaped coordinates to use for a page: the operator-list fallback if one was computed, else the tracker's own. */
@@ -290,27 +317,31 @@ export class RecolorController {
     return rectsFromTrackedCoordinates(fallback ?? coords, detail);
   }
 
-  private reprocessPage(pageNumber: number): void {
-    for (const key of [entryKey(pageNumber, false), entryKey(pageNumber, true)]) {
-      const o = this.originals.get(key);
-      if (o) this.reprocessOne(o);
-    }
+  private async reprocessPage(pageNumber: number): Promise<void> {
+    const entries = [entryKey(pageNumber, false), entryKey(pageNumber, true)]
+      .map(key => this.originals.get(key))
+      .filter((o): o is OriginalEntry => !!o);
+    await Promise.all(entries.map(o => this.reprocessOne(o)));
   }
 
-  private reprocessAll(): void {
-    for (const o of this.originals.values()) this.reprocessOne(o);
+  private async reprocessAll(): Promise<void> {
+    await Promise.all([...this.originals.values()].map(o => this.reprocessOne(o)));
   }
 
-  private reprocessOne(o: OriginalEntry): void {
+  private async reprocessOne(o: OriginalEntry): Promise<void> {
     if (!o.canvas.isConnected) return;
     const rawRects = this.getRawRects(o.pageNumber, o.coords, o.detail);
     const { rects, stretches } = this.classifyRects(rawRects, o.coords, o.pageNumber, o.copy, !!o.detail);
-    const out = this.recolorer.process(o.copy, rects, { dim: this.imagesSettings.dimLevel, bg: this.bg, stretches });
+    const out = await this.recolorer.process(o.copy, rects, {
+      dim: this.imagesSettings.dimLevel,
+      bg: this.bg,
+      stretches,
+    });
     o.canvas.getContext("2d")!.drawImage(out, 0, 0);
   }
 
   /** Shows the original, un-recolored pages while held (the "peek" key). */
-  setPeeking(on: boolean): void {
+  async setPeeking(on: boolean): Promise<void> {
     if (this.peeking === on) return;
     this.peeking = on;
     if (on) {
@@ -319,16 +350,16 @@ export class RecolorController {
         o.canvas.getContext("2d")!.drawImage(o.copy, 0, 0);
       }
     } else {
-      this.reprocessAll();
+      await this.reprocessAll();
     }
   }
 
   /** Restores original pixels for printing (settings.print.useTheme === false). Call again with false after printing. */
-  setPrintingOriginal(on: boolean): void {
+  async setPrintingOriginal(on: boolean): Promise<void> {
     if (on) {
       for (const o of this.originals.values()) o.canvas.getContext("2d")!.drawImage(o.copy, 0, 0);
     } else {
-      this.reprocessAll();
+      await this.reprocessAll();
     }
   }
 }

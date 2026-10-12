@@ -2,7 +2,7 @@
 
 Extension Manifest V3 pour Chrome, Opera, Edge, Brave et Vivaldi : un vrai mode sombre pour les PDF, dans un lecteur PDF.js embarqué (moteur principal) ou en calque sur le lecteur intégré du navigateur.
 
-> État : **phase 1** (squelette). Les PDF s'ouvrent dans le lecteur embarqué, avec l'interface sombre de PDF.js ; la recoloration des pages arrive en phase 2. Plan complet : `.claude/prompt.md`. Décisions techniques : `docs/phase0-findings.md`. Suivi : `docs/backlog.md`.
+> État : **phase 6** (qualité et préparation boutique) en cours. Phases 0-5 faites : recoloration OKLab (moteur A), interface complète, moteur B (calque sur le lecteur intégré), règles par site, raccourcis clavier, menu contextuel. Plan complet : `.claude/prompt.md`. Décisions techniques : `docs/phase0-findings.md`, `docs/ADR-001-recoloration.md`. Suivi : `docs/backlog.md`. Boutique : `docs/chrome-web-store-listing.md`, `docs/privacy-policy.md`.
 
 ## Installer depuis les sources
 
@@ -46,8 +46,9 @@ Les tests e2e demandent le Chromium de Playwright : `npx playwright install chro
 | `storage` | Réglages, et préférences du lecteur PDF.js. |
 | `webNavigation` | Ouvrir les PDF locaux quand l'accès aux fichiers n'est pas accordé ; savoir quand un onglet quitte le lecteur intégré. |
 | `webRequest` (lecture seule) | Retenir l'en-tête `Referer` de la requête PDF, que le lecteur renvoie en rechargeant le fichier (certains sites l'exigent), et repérer les réponses à un formulaire POST, que le lecteur ne peut pas reproduire. |
+| `contextMenus` | Menu « Ouvrir dans le lecteur amélioré/intégré » sur un lien PDF. |
 
-Aucune télémétrie, aucune requête réseau en dehors du PDF demandé.
+Aucune télémétrie, aucune requête réseau en dehors du PDF demandé. Détails pour la boutique : `docs/chrome-web-store-listing.md` et `docs/privacy-policy.md`.
 
 ## Organisation
 

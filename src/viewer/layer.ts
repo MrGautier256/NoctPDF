@@ -251,10 +251,11 @@ export function startViewerLayer(): void {
       // Not fatal.
     }
 
-    // If WebGL2 is unavailable (GPU denylisted, etc.) fall back to showing pages unthemed rather
-    // than hidden forever: the no-white-flash CSS only hides a canvas until data-noct is set,
-    // which never happens without a working recolorer. Phase 6 replaces this with a CPU Worker
-    // that runs the same color model (docs/backlog.md); for now this is "no theme" not "no PDF".
+    // RecolorController itself falls back to a CPU Worker (cpu-recolorer.ts) when WebGL2 is
+    // unavailable (GPU denylisted, etc.), so this only ever throws if even a 2D OffscreenCanvas
+    // context is unavailable. In that unlikely case, show pages unthemed rather than hidden
+    // forever: the no-white-flash CSS only hides a canvas until data-noct is set, which never
+    // happens without a working recolorer.
     let controller: RecolorController | null = null;
     try {
       controller = new RecolorController(themeFrom(settings), settings.images);
@@ -279,13 +280,17 @@ export function startViewerLayer(): void {
     });
     app.eventBus.on("pagerendered", e => {
       const evt = e as unknown as PageRenderedEvent;
-      controller?.onPageRendered(evt);
-      if (evt.isDetailView) return;
-      if (controller && evt.source.canvas) refreshThumbnail(app, evt.pageNumber, evt.source.canvas);
-      diag.pagesRendered++;
-      const view: PdfPageViewLike | undefined = app.pdfViewer.getPageView(evt.pageNumber - 1);
-      const coords = view?.imageCoordinates;
-      diag.imageRects[evt.pageNumber] = coords ? coords.length / 6 : null;
+      // onPageRendered resolves synchronously on the GPU path and after a Worker
+      // round-trip on the CPU fallback; the thumbnail refresh (reads evt.source.canvas)
+      // must wait for either so it never captures pre-recolor pixels.
+      void (controller?.onPageRendered(evt) ?? Promise.resolve()).then(() => {
+        if (evt.isDetailView) return;
+        if (controller && evt.source.canvas) refreshThumbnail(app, evt.pageNumber, evt.source.canvas);
+        diag.pagesRendered++;
+        const view: PdfPageViewLike | undefined = app.pdfViewer.getPageView(evt.pageNumber - 1);
+        const coords = view?.imageCoordinates;
+        diag.imageRects[evt.pageNumber] = coords ? coords.length / 6 : null;
+      });
     });
     app.eventBus.on("annotationlayerrendered", e => {
       const evt = e as unknown as AnnotationLayerRenderedEvent;
@@ -303,7 +308,7 @@ export function startViewerLayer(): void {
         const uiChanged = JSON.stringify(next.ui) !== JSON.stringify(current.ui);
         current = next;
         if (themeChanged) {
-          controller?.setTheme(themeFrom(next));
+          void controller?.setTheme(themeFrom(next));
           const t: CachedTheme = {
             bg: next.theme.bg,
             fg: next.theme.fg,
@@ -317,7 +322,7 @@ export function startViewerLayer(): void {
             // Not fatal.
           }
         }
-        if (imagesChanged) controller?.setImagesSettings(next.images);
+        if (imagesChanged) void controller?.setImagesSettings(next.images);
         if (themeChanged || uiChanged) applyUiColors(next);
         if (uiChanged) {
           applyUiEffects(next);
@@ -329,16 +334,16 @@ export function startViewerLayer(): void {
 
     const matchesPeekKey = (e: KeyboardEvent) => current.peekKey !== "none" && e.key === current.peekKey;
     addEventListener("keydown", e => {
-      if (matchesPeekKey(e) && !e.repeat) controller?.setPeeking(true);
+      if (matchesPeekKey(e) && !e.repeat) void controller?.setPeeking(true);
     });
     addEventListener("keyup", e => {
-      if (matchesPeekKey(e)) controller?.setPeeking(false);
+      if (matchesPeekKey(e)) void controller?.setPeeking(false);
     });
-    addEventListener("blur", () => controller?.setPeeking(false));
+    addEventListener("blur", () => void controller?.setPeeking(false));
 
     addEventListener("beforeprint", () => {
-      if (!current.print.useTheme) controller?.setPrintingOriginal(true);
+      if (!current.print.useTheme) void controller?.setPrintingOriginal(true);
     });
-    addEventListener("afterprint", () => controller?.setPrintingOriginal(false));
+    addEventListener("afterprint", () => void controller?.setPrintingOriginal(false));
   });
 }
