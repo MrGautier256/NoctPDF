@@ -1,6 +1,6 @@
 {
   "name": "noctpdf",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Dark mode for PDFs in Chromium browsers, with a customizable PDF.js reader.",
