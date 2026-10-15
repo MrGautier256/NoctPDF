@@ -104,6 +104,8 @@ export class RecolorController {
   private readonly textEmptyByPage = new Map<number, boolean>();
   /** Flat, coords-shaped rects from the operator-list walk, for pages where the tracker came back empty wrongly. */
   private readonly fallbackCoordsByPage = new Map<number, number[]>();
+  /** Set once pdfPage.getOperatorList() turns out unimplemented in this PDF.js build, to stop retrying it. */
+  private operatorListUnavailable = false;
   /** Annotation-layer roots seen so far (phase 0's link-border bug), re-swept on theme change. */
   private readonly annotationRoots = new Set<Element>();
   private readonly borderOriginals = new WeakMap<Element, BorderOriginal>();
@@ -308,10 +310,25 @@ export class RecolorController {
    * and reprocess the page with those rects instead.
    */
   private async verifyImageCoordinates(pageView: PdfPageViewLike, pageNumber: number): Promise<void> {
-    if (!pageView.pdfPage || this.fallbackCoordsByPage.has(pageNumber)) return;
+    if (!pageView.pdfPage || this.fallbackCoordsByPage.has(pageNumber) || this.operatorListUnavailable) return;
     const coords = pageView.imageCoordinates;
     if (coords && coords.length > 0) return;
-    const operatorList = await pageView.pdfPage.getOperatorList();
+    let operatorList: OperatorList;
+    try {
+      operatorList = await pageView.pdfPage.getOperatorList();
+    } catch (err) {
+      // Confirmed on the vendored "gulp chromium" PDF.js build: PDFPageProxy's
+      // getOperatorList() is a stub that always throws "Not implemented". Give
+      // up on this fallback for the rest of the document instead of retrying
+      // (and erroring) on every page; the image tracker's own coordinates are
+      // still used as before this fallback existed.
+      this.operatorListUnavailable = true;
+      console.warn(
+        "NoctPDF: pdfPage.getOperatorList() is unavailable in this PDF.js build; skipping the fallback",
+        err,
+      );
+      return;
+    }
     if (!shouldUseOperatorListFallback(coords, operatorList)) return;
     const { transform, width, height } = pageView.viewport;
     const rects = collectImageRectsFromOperatorList(operatorList, transform, width, height);
