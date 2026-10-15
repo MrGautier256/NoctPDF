@@ -142,12 +142,26 @@ function injectStylesheet(): void {
   document.head.append(link);
 }
 
+const WHEN_APP_POLL_MS = 25;
+const WHEN_APP_TIMEOUT_MS = 15_000;
+
+/**
+ * Waits for PDF.js' own viewer.mjs to assign window.PDFViewerApplication.
+ * Polls rather than waiting once for DOMContentLoaded: that event fires once
+ * every deferred/module script in the initial HTML has run, which in theory
+ * includes viewer.mjs, but this code only reaches here after settings have
+ * been read from storage (an async round trip) — by then the document may
+ * already report readyState "complete" while viewer.mjs (a large bundle,
+ * slower to fetch/parse on some machines or file:// loads) is still mid-flight,
+ * so a single check right after "not loading anymore" can fire too early.
+ */
 async function whenApp(): Promise<PdfjsApp> {
-  if (document.readyState === "loading") {
-    await new Promise(r => document.addEventListener("DOMContentLoaded", r, { once: true }));
+  const deadline = Date.now() + WHEN_APP_TIMEOUT_MS;
+  while (!window.PDFViewerApplication) {
+    if (Date.now() > deadline) throw new Error("PDFViewerApplication missing");
+    await new Promise(r => setTimeout(r, WHEN_APP_POLL_MS));
   }
   const app = window.PDFViewerApplication;
-  if (!app) throw new Error("PDFViewerApplication missing");
   await app.initializedPromise;
   return app;
 }
@@ -265,7 +279,13 @@ export function startViewerLayer(): void {
     }
     let current = settings;
 
-    const app = await whenApp();
+    let app: PdfjsApp;
+    try {
+      app = await whenApp();
+    } catch (err) {
+      console.error("NoctPDF: PDF.js never initialized, leaving the page as is", err);
+      return;
+    }
     enableImageTrackerOnly();
     applyPdfjsUiOptions(settings);
     setupAutoHideToolbar(settings.ui.autoHideToolbar);

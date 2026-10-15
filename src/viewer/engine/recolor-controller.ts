@@ -201,11 +201,7 @@ export class RecolorController {
 
     const { rects, stretches } = this.classifyRects(rawRects, coords, evt.pageNumber, copy, !!evt.isDetailView);
 
-    const out = await this.recolorer.process(copy, rects, {
-      dim: this.imagesSettings.dimLevel,
-      bg: this.bg,
-      stretches,
-    });
+    const out = await this.processOrFallback(copy, rects, stretches);
     canvas.getContext("2d")!.drawImage(out, 0, 0);
     canvas.dataset.noct = "1";
 
@@ -266,6 +262,25 @@ export class RecolorController {
       stretches.push(undefined);
     }
     return { rects, stretches };
+  }
+
+  /**
+   * Recolors the page, falling back to the unrecolored original on failure
+   * so a page is never left permanently hidden (the no-white-flash CSS only
+   * reveals a canvas once `data-noct` is set, which a thrown/rejected
+   * `process()` would otherwise prevent forever).
+   */
+  private async processOrFallback(
+    copy: OffscreenCanvas,
+    rects: readonly ImageRect[],
+    stretches: Array<LevelsStretch | undefined>,
+  ): Promise<OffscreenCanvas> {
+    try {
+      return await this.recolorer.process(copy, rects, { dim: this.imagesSettings.dimLevel, bg: this.bg, stretches });
+    } catch (err) {
+      console.error("NoctPDF: recoloring this page failed, showing it unthemed", err);
+      return copy;
+    }
   }
 
   private scanStretch(
@@ -332,11 +347,7 @@ export class RecolorController {
     if (!o.canvas.isConnected) return;
     const rawRects = this.getRawRects(o.pageNumber, o.coords, o.detail);
     const { rects, stretches } = this.classifyRects(rawRects, o.coords, o.pageNumber, o.copy, !!o.detail);
-    const out = await this.recolorer.process(o.copy, rects, {
-      dim: this.imagesSettings.dimLevel,
-      bg: this.bg,
-      stretches,
-    });
+    const out = await this.processOrFallback(o.copy, rects, stretches);
     o.canvas.getContext("2d")!.drawImage(out, 0, 0);
   }
 
